@@ -36,7 +36,7 @@ bulletY = y + 60
 bulletXMove = 1
 bulletYMove = 0
 
-# x,y of mouse position
+bullets = []
 
 class character:
 	imageCopy = characterImgCopy
@@ -91,94 +91,60 @@ class character:
 				if event.button == LEFT:
 					position = pygame.mouse.get_pos()
 					bullets.append([math.atan2(position[1]-(y + 60),position[0]-(x + 60)),(x + 60),(y + 60)])
-				#bullets.append([math.atan2(position[1]-(y + 60),position[0]-(x + 60)),(x + 60),(y + 60)])
 			if event.type == pygame.MOUSEBUTTONUP and event.button == LEFT:
 				pass
 
-
 class weapon:
-	paintBallGunCopy = gunImgCopy
-	paintBallGunCopy_rect = paintBallGunCopy.get_rect()
-
+	paintBallGunCopy_rect = gunImgCopy.get_rect()
 	characterImgRect = characterImgCopy.get_rect()
 
-	#def __init__(self,mx,my):
-	#	self.mx = mx
-	#	self.my = my
+	global x,y
 
-	def draw_paintball_gun(self,screen,mx,my):
+	def __init__(self,mx,my):
 		self.mx = mx
 		self.my = my
 
-		global x,y
+	def draw_paintball_gun(self):
 
 		angle = math.atan2(self.my - (y + 60), self.mx - (x + 60))
 
 		left = -1.6741997891848224 
-		leftFlip = pygame.transform.flip(self.paintBallGunCopy,False,True)
+		leftFlip = pygame.transform.flip(gunImgCopy,False,True)
 
 		if self.mx <= x + 60:
 			paintBallGunRotLeft = pygame.transform.rotate(leftFlip,360-angle*57.29)
 			paintBallGunPosLeft = ((x + 60) - paintBallGunRotLeft.get_rect().width/2,(y + 60) - paintBallGunRotLeft.get_rect().height/2)
 			screen.blit(paintBallGunRotLeft,paintBallGunPosLeft)
-
-			cos = math.cos
-			sin = math.cos
-
-			a = angle * math.pi / 180
-
-			xm = paintBallGunPosLeft[0] + (paintBallGunRotLeft.get_rect().width/2)
-			ym = paintBallGunPosLeft[1] + (paintBallGunRotLeft.get_rect().height/2)
-
-			xpos = xm - 30
-			ypos = ym 
-			
-			xr = (xpos - xm) * cos(a) - (ypos - ym) * sin(a) + xm
-			yr = (xpos - xm) * sin(a) + (ypos - ym) * cos(a) + ym
-
-			pygame.draw.line(screen, (red),(xr,yr),(self.mx,self.my))
 		else:
-			paintBallGunRot = pygame.transform.rotate(self.paintBallGunCopy,360-angle*57.29)
+			paintBallGunRot = pygame.transform.rotate(gunImgCopy,360-angle*57.29)
 			paintBallGunPos = ((x + 60) - paintBallGunRot.get_rect().width/2,(y + 60) - paintBallGunRot.get_rect().height/2)
 			screen.blit(paintBallGunRot,paintBallGunPos)
 
+			'''									GET X,Y COORDINATES OF ROTATED GUN IMAGE
 			cos = math.cos
 			sin = math.cos
-
 			a = angle
-
 			xm = x + 60
 			ym = y + 60
-
 			xpos = xm + 15
 			ypos = ym - 15
-			
 			xr = (xpos - xm) * cos(a) - (ypos - ym) * sin(a) + xm
 			yr = (xpos - xm) * sin(a) + (ypos - ym) * cos(a) + ym
-
-			#pygame.draw.line(screen, (red),(xr,yr),(self.mx,self.my))
-
 			pygame.draw.line(screen, (red),(xr,yr),(self.mx,self.my))
+			'''
 
-			#function rotate(x, y, xm, ym, a) {
-   			# var cos = Math.cos,
-       		# sin = Math.sin,
-
-        	#a = a * Math.PI / 180, // Convert to radians because that is what
-            #                   // JavaScript likes
-
-        	#// Subtract midpoints, so that midpoint is translated to origin
-       		# // and add it in the end again
-       		#xr = (x - xm) * cos(a) - (y - ym) * sin(a)   + xm,
-        #	yr = (x - xm) * sin(a) + (y - ym) * cos(a)   + ym;
-
-   			#return [xr, yr];
-
-		#pygame.draw.line(screen, (red),(x + 60,y + 60),(self.mx,self.my))	
-
-
-
-bullets = []
+		for bullet in bullets:
+			index=0
+			velx = math.cos(bullet[0])*2
+			vely = math.sin(bullet[0])*2
+			bullet[1] += velx
+			bullet[2] += vely 
+			if bullet[1]<-64 or bullet[1]>2000 or bullet[2]<-64 or bullet[2]>2000:
+				bullets.pop(index)
+			index += 1
+			for projectile in bullets:
+				bullets1 = pygame.transform.rotate(paintBallBulletCopy, 360-projectile[0]*57.29)
+				screen.blit(bullets1, (projectile[1],projectile[2]))
 
 def main():
 
@@ -194,36 +160,12 @@ def main():
 		character1.draw()
 
 		character1.move()
-		paintball = weapon()
-		paintball.draw_paintball_gun(screen,mx,my)
-		#paintball.get_line(x,y,mx,my)
-
-
-	# bullet logic
-		for bullet in bullets:
-			index=0
-			velx = math.cos(bullet[0])*2
-			vely = math.sin(bullet[0])*2
-			bullet[1] += velx
-			bullet[2] += vely 
-			if bullet[1]<-64 or bullet[1]>2000 or bullet[2]<-64 or bullet[2]>2000:
-				bullets.pop(index)
-			index += 1
-			for projectile in bullets:
-				bullets1 = pygame.transform.rotate(paintBallBulletCopy, 360-projectile[0]*57.29)
-				screen.blit(bullets1, (projectile[1],projectile[2]))
+		paintball = weapon(mx,my)
+		paintball.draw_paintball_gun()
 
 		x += xmove
 		y += ymove
-	#print(str(mx) + "        " + str(my))
-	#print(fire)
-
-	# character
-	#character1 = character(x,y,xmove,ymove)
-	#character1.draw(screen)
-
-	# paintball gun
-
+		
 		pygame.display.update()
 
 if __name__ == "__main__":
