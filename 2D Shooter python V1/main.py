@@ -3,6 +3,8 @@ from math import sqrt
 
 pygame.init()
 
+clock = pygame.time.Clock()
+
 white = 255,255,255
 red = 255,0,0
 
@@ -23,12 +25,23 @@ characterImgCopy = characterImgScale.copy()
 paintBallBullet = pygame.image.load("circle.png")
 paintBallBulletScale = pygame.transform.scale(paintBallBullet,(12,12))
 paintBallBulletCopy = paintBallBulletScale.copy()
+
+# ANIMATIONS SPRITE
+
+walkRightLoad = [pygame.image.load("thief1_running.png"),pygame.image.load("thief1_running2.png"),pygame.image.load("thief1_running3.png"),pygame.image.load("thief1_running4.png"),pygame.image.load("thief1_running5.png"),]
+walkRight = [pygame.transform.scale(walkRightLoad[0],(100,100)),pygame.transform.scale(walkRightLoad[1],(100,100)),pygame.transform.scale(walkRightLoad[2],(100,100)),pygame.transform.scale(walkRightLoad[3],(100,100)),pygame.transform.scale(walkRightLoad[4],(100,100))]
+walkLeft = [pygame.transform.flip(walkRight[0],True,False),pygame.transform.flip(walkRight[1],True,False),pygame.transform.flip(walkRight[2],True,False),pygame.transform.flip(walkRight[3],True,False),pygame.transform.flip(walkRight[4],True,False)]
+walkRightBackwards = walkRight = [pygame.transform.scale(walkRightLoad[4],(100,100)),pygame.transform.scale(walkRightLoad[3],(100,100)),pygame.transform.scale(walkRightLoad[2],(100,100)),pygame.transform.scale(walkRightLoad[1],(100,100)),pygame.transform.scale(walkRightLoad[0],(100,100))]
+leftWalk = False
+rightWalk = False
+walkCount = 0
 #x,y of character
 x = 400
 xmove = 0
 y = 300
 ymove = 0
 running = True
+velocity = 10
 #
 fire = 0
 bulletX = x + 60
@@ -39,7 +52,6 @@ bulletYMove = 0
 bullets = []
 
 class character:
-	imageCopy = characterImgCopy
 	
 	def __init__(self,mx,my):
 		self.mx = mx
@@ -47,17 +59,37 @@ class character:
 
 	def draw(self):
 
-		if self.mx <= x + 50:
-			leftFlip = pygame.transform.flip(self.imageCopy,True,False)
-			screen.blit(leftFlip, (x,y))
-		else:
-			screen.blit(self.imageCopy, (x,y))
+		global walkCount
+
+		if walkCount + 1 >= 60:
+			walkCount = 0
+
+		if leftWalk:
+			if self.mx > x + 50:
+				screen.blit(walkRight[walkCount//12], (x,y))
+				walkCount += 1
+			else:
+				screen.blit(walkLeft[walkCount//12], (x,y))
+				walkCount += 1
+		if rightWalk:
+			if self.mx < x + 50:
+				screen.blit(walkLeft[walkCount//12], (x,y))
+				walkCount += 1
+			else:
+				screen.blit(walkRight[walkCount//12], (x,y))
+				walkCount += 1
+
+		if not leftWalk and not rightWalk:
+
+			if self.mx > x + 50:
+				screen.blit(characterImgCopy, (x,y))
+			else:
+				screen.blit(pygame.transform.flip(characterImgCopy,True,False),(x,y))
+
 
 	def move(self):
 
-		global x,y,xmove,ymove,running
-
-		sensitivity = 2
+		global x,y,xmove,ymove,running, leftWalk,rightWalk
 
 		LEFT = 1
 		RIGHT = 3
@@ -66,27 +98,52 @@ class character:
 			if event.type == pygame.QUIT:
 				running = False
 			if event.type == pygame.RESIZABLE:
-				screen = pygame.display.set_mode((800, 600), pygame.RESIZABLE)
+				screen = pygame.display.set_mode((WIN_SIZE), pygame.RESIZABLE)
 			if event.type == pygame.KEYDOWN:
+				#	MOVE LEFT
 				if event.key == pygame.K_a:
-					xmove = 0 - sensitivity
+					xmove = 0 - velocity
 					x -= xmove
+					leftWalk = True
+					rightWalk = False
+				# MOVE RIGHT
 				if event.key == pygame.K_d:
-					xmove = + sensitivity
+					xmove = + velocity
 					x -= xmove
+					leftWalk = False
+					rightWalk = True
 			if event.type == pygame.KEYUP:
 				if event.key == pygame.K_a or event.key == pygame.K_d:
 					xmove = 0
+					leftWalk = False
+					rightWalk = False
 			if event.type == pygame.KEYDOWN:
+				# MOVE UP
 				if event.key == pygame.K_w:
-					ymove = - sensitivity
+					ymove = - velocity
 					y -= ymove
+					if self.mx > x:
+						rightWalk = True
+						leftWalk = False
+					else:
+						rightWalk = False
+						leftWalk = True
+				# MOVE DOWN
 				if event.key == pygame.K_s:
-					ymove = + sensitivity
+					ymove = + velocity
 					y -= ymove
+					if self.mx > x:
+						rightWalk = True
+						leftWalk = False
+					else:
+						rightWalk = False
+						leftWalk = True
+					
 			if event.type == pygame.KEYUP:
 				if event.key == pygame.K_w or event.key == pygame.K_s:
 					ymove = 0
+					leftWalk = False
+					rightWalk = False
 			if event.type == pygame.MOUSEBUTTONDOWN:
 				if event.button == LEFT:
 					position = pygame.mouse.get_pos()
@@ -134,9 +191,10 @@ class weapon:
 			'''
 
 		for bullet in bullets:
+			bulletspeed = 20
 			index=0
-			velx = math.cos(bullet[0])*2
-			vely = math.sin(bullet[0])*2
+			velx = math.cos(bullet[0])*bulletspeed
+			vely = math.sin(bullet[0])*bulletspeed
 			bullet[1] += velx
 			bullet[2] += vely 
 			if bullet[1]<-64 or bullet[1]>2000 or bullet[2]<-64 or bullet[2]>2000:
@@ -151,6 +209,7 @@ def main():
 	global x,y,xmove,ymove,white,screen,running
 	
 	while running:
+		clock.tick(60)
 
 		mx,my = pygame.mouse.get_pos()
 
@@ -158,13 +217,15 @@ def main():
 
 		character1 = character(mx,my)
 		character1.draw()
-
 		character1.move()
-		paintball = weapon(mx,my)
-		paintball.draw_paintball_gun()
+		
+		#paintball = weapon(mx,my)
+		#paintball.draw_paintball_gun()
 
 		x += xmove
 		y += ymove
+
+		'''		TEST YOUR STUFF HERE		'''
 		
 		pygame.display.update()
 
