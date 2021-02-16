@@ -1,9 +1,11 @@
 import sys, pygame, time, random, math
 from math import sqrt
+from pygame.locals import *
 
 pygame.init()
 
 clock = pygame.time.Clock()
+FPS = 60
 
 white = 255,255,255
 red = 255,0,0
@@ -52,7 +54,6 @@ bulletYMove = 0
 bullets = []
 
 class character:
-	
 	def __init__(self,mx,my):
 		self.mx = mx
 		self.my = my
@@ -86,17 +87,16 @@ class character:
 			else:
 				screen.blit(pygame.transform.flip(characterImgCopy,True,False),(x,y))
 
-
 	def move(self):
 
-		global x,y,xmove,ymove,running, leftWalk,rightWalk
+		global x,y,xmove,ymove,running, leftWalk,rightWalk,running
 
 		LEFT = 1
 		RIGHT = 3
 		
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
-				running = False
+				pygame.quit()
 			if event.type == pygame.RESIZABLE:
 				screen = pygame.display.set_mode((WIN_SIZE), pygame.RESIZABLE)
 			if event.type == pygame.KEYDOWN:
@@ -112,6 +112,8 @@ class character:
 					x -= xmove
 					leftWalk = False
 					rightWalk = True
+				if event.key == pygame.K_ESCAPE:
+					menu()
 			if event.type == pygame.KEYUP:
 				if event.key == pygame.K_a or event.key == pygame.K_d:
 					xmove = 0
@@ -150,7 +152,6 @@ class character:
 					bullets.append([math.atan2(position[1]-(y + 60),position[0]-(x + 60)),(x + 60),(y + 60)])
 			if event.type == pygame.MOUSEBUTTONUP and event.button == LEFT:
 				pass
-
 class weapon:
 	paintBallGunCopy_rect = gunImgCopy.get_rect()
 	characterImgRect = characterImgCopy.get_rect()
@@ -204,12 +205,48 @@ class weapon:
 				bullets1 = pygame.transform.rotate(paintBallBulletCopy, 360-projectile[0]*57.29)
 				screen.blit(bullets1, (projectile[1],projectile[2]))
 
+def draw_text(text, font, color, surface,x,y):
+	textobj = font.render(text, 1, color)
+	textrect = textobj.get_rect()
+	textrect.topleft = (x,y)
+	surface.blit(textobj, textrect)
+
+def menu():
+	while True:
+
+		mx,my = pygame.mouse.get_pos()
+		clock.tick(FPS)
+
+		screen.fill(white)
+
+		draw_text('MENU', font, (0,0,0), screen, 20, 20)
+
+		LEFTCLICK = 1
+		click = False
+		button_1 = pygame.Rect(50,100,200,50)
+
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				pygame.quit()
+				sys.exit()
+			if event.type == pygame.MOUSEBUTTONDOWN:
+				if event.button == LEFTCLICK:
+					click = True
+					print(click)
+
+		if button_1.collidepoint((mx, my)):
+			print("collide")
+			if click:
+				main()
+		pygame.draw.rect(screen, (255,0,0), button_1)
+		pygame.display.update()
+
 def main():
 
 	global x,y,xmove,ymove,white,screen,running
 	
 	while running:
-		clock.tick(60)
+		clock.tick(FPS)
 
 		mx,my = pygame.mouse.get_pos()
 
@@ -226,8 +263,10 @@ def main():
 		y += ymove
 
 		'''		TEST YOUR STUFF HERE		'''
-		
 		pygame.display.update()
 
 if __name__ == "__main__":
-	main()
+	try:
+		menu()
+	except pygame.error:
+		"video system not initialized"
