@@ -36,14 +36,12 @@ walkLeft = [pygame.transform.flip(walkRight[0],True,False),pygame.transform.flip
 walkRightBackwards = walkRight = [pygame.transform.scale(walkRightLoad[4],(100,100)),pygame.transform.scale(walkRightLoad[3],(100,100)),pygame.transform.scale(walkRightLoad[2],(100,100)),pygame.transform.scale(walkRightLoad[1],(100,100)),pygame.transform.scale(walkRightLoad[0],(100,100))]
 leftWalk = False
 rightWalk = False
-walkCount = 0
 #x,y of character
 x = 400
 xmove = 0
 y = 300
 ymove = 0
 running = True
-velocity = 10
 #
 fire = 0
 bulletX = x + 60
@@ -52,34 +50,46 @@ bulletXMove = 1
 bulletYMove = 0
 
 bullets = []
+bulletMagazine = 10
 
+walkCount = 0
+
+#	TIME
+time = 0
+reloadTime = 0
 class character:
+	
 	def __init__(self,mx,my):
 		self.mx = mx
 		self.my = my
 
 	def draw(self):
 
-		global walkCount
+		global walkCount,leftWalk,rightWalk
 
 		if walkCount + 1 >= 60:
 			walkCount = 0
 
+		#	LEFTWALK ANIMATION
+		frames = 12
 		if leftWalk:
 			if self.mx > x + 50:
-				screen.blit(walkRight[walkCount//12], (x,y))
-				walkCount += 1
-			else:
-				screen.blit(walkLeft[walkCount//12], (x,y))
-				walkCount += 1
-		if rightWalk:
-			if self.mx < x + 50:
-				screen.blit(walkLeft[walkCount//12], (x,y))
-				walkCount += 1
-			else:
-				screen.blit(walkRight[walkCount//12], (x,y))
+				screen.blit(walkRight[walkCount//frames], (x,y))
 				walkCount += 1
 
+			else:
+				screen.blit(walkLeft[walkCount//frames], (x,y))
+				walkCount += 1
+		#	RIGHTWALK ANIMATION
+		if rightWalk:
+			if self.mx < x + 50:
+				screen.blit(walkLeft[walkCount//frames], (x,y))
+				walkCount += 1
+				
+			else:
+				screen.blit(walkRight[walkCount//frames], (x,y))
+				walkCount += 1
+		#	BLIT LEFT OR RIGHT FACING CHARACTER STANDING STILL
 		if not leftWalk and not rightWalk:
 
 			if self.mx > x + 50:
@@ -89,10 +99,11 @@ class character:
 
 	def move(self):
 
-		global x,y,xmove,ymove,running, leftWalk,rightWalk,running
+		global x,y,xmove,ymove,running, leftWalk,rightWalk,running,bulletMagazine
 
 		LEFT = 1
 		RIGHT = 3
+		velocity = 10
 		
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -150,6 +161,7 @@ class character:
 				if event.button == LEFT:
 					position = pygame.mouse.get_pos()
 					bullets.append([math.atan2(position[1]-(y + 60),position[0]-(x + 60)),(x + 60),(y + 60)])
+					bulletMagazine -= 1
 			if event.type == pygame.MOUSEBUTTONUP and event.button == LEFT:
 				pass
 class weapon:
@@ -169,6 +181,7 @@ class weapon:
 		left = -1.6741997891848224 
 		leftFlip = pygame.transform.flip(gunImgCopy,False,True)
 
+		#	GUN ROTATE IMG
 		if self.mx <= x + 60:
 			paintBallGunRotLeft = pygame.transform.rotate(leftFlip,360-angle*57.29)
 			paintBallGunPosLeft = ((x + 60) - paintBallGunRotLeft.get_rect().width/2,(y + 60) - paintBallGunRotLeft.get_rect().height/2)
@@ -177,6 +190,30 @@ class weapon:
 			paintBallGunRot = pygame.transform.rotate(gunImgCopy,360-angle*57.29)
 			paintBallGunPos = ((x + 60) - paintBallGunRot.get_rect().width/2,(y + 60) - paintBallGunRot.get_rect().height/2)
 			screen.blit(paintBallGunRot,paintBallGunPos)
+
+	def bullet(self):
+		global bulletMagazine,reloadTime
+
+		if bulletMagazine in range(1,11):
+			for bullet in bullets:
+				bulletspeed = 25
+				index=0
+				velx = math.cos(bullet[0])*bulletspeed
+				vely = math.sin(bullet[0])*bulletspeed
+				bullet[1] += velx
+				bullet[2] += vely 
+				if bullet[1]<-64 or bullet[1]>2000 or bullet[2]<-64 or bullet[2]>2000:
+					bullets.pop(index)
+				index += 1
+				for projectile in bullets:
+					bullets1 = pygame.transform.rotate(paintBallBulletCopy, 360-projectile[0]*57.29)
+					screen.blit(bullets1, (projectile[1],projectile[2]))
+		else:
+
+			reloadTime += 1
+			if reloadTime == 150:	# 5 seconds * 60frames per second
+				reloadTime = 0
+				bulletMagazine = 10
 
 			'''									GET X,Y COORDINATES OF ROTATED GUN IMAGE
 			cos = math.cos
@@ -191,19 +228,7 @@ class weapon:
 			pygame.draw.line(screen, (red),(xr,yr),(self.mx,self.my))
 			'''
 
-		for bullet in bullets:
-			bulletspeed = 20
-			index=0
-			velx = math.cos(bullet[0])*bulletspeed
-			vely = math.sin(bullet[0])*bulletspeed
-			bullet[1] += velx
-			bullet[2] += vely 
-			if bullet[1]<-64 or bullet[1]>2000 or bullet[2]<-64 or bullet[2]>2000:
-				bullets.pop(index)
-			index += 1
-			for projectile in bullets:
-				bullets1 = pygame.transform.rotate(paintBallBulletCopy, 360-projectile[0]*57.29)
-				screen.blit(bullets1, (projectile[1],projectile[2]))
+		# FIRE BULLET MECHANIC
 
 def draw_text(text, font, color, surface,x,y):
 	textobj = font.render(text, 1, color)
@@ -219,11 +244,9 @@ def menu():
 
 		screen.fill(white)
 
-		draw_text('MENU', font, (0,0,0), screen, 20, 20)
-
 		LEFTCLICK = 1
 		click = False
-		button_1 = pygame.Rect(50,100,200,50)
+		button_1 = pygame.Rect((1920-600)/2,(1080-300)/2,200,50)
 
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -232,38 +255,46 @@ def menu():
 			if event.type == pygame.MOUSEBUTTONDOWN:
 				if event.button == LEFTCLICK:
 					click = True
-					print(click)
 
 		if button_1.collidepoint((mx, my)):
-			print("collide")
 			if click:
 				main()
 		pygame.draw.rect(screen, (255,0,0), button_1)
+		draw_text('PLAY', font, (0,0,0), screen, ((1920-600)/2) + 85,((1080-300)/2) + 12.5)
 		pygame.display.update()
 
 def main():
 
-	global x,y,xmove,ymove,white,screen,running
+	global x, y, xmove, ymove, white, screen, running, rightWalk, leftWalk, bulletMagazine, time
 	
 	while running:
-		clock.tick(FPS)
 
 		mx,my = pygame.mouse.get_pos()
 
 		screen.fill(white)
 
 		character1 = character(mx,my)
-		character1.draw()
 		character1.move()
+		character1.draw()
 		
-		#paintball = weapon(mx,my)
-		#paintball.draw_paintball_gun()
+		paintball = weapon(mx,my)
+		paintball.draw_paintball_gun()
+		paintball.bullet()
+
+		print(bulletMagazine)
 
 		x += xmove
 		y += ymove
 
 		'''		TEST YOUR STUFF HERE		'''
+		time += 1
+		draw_text('TIME:' + str(time), font, (0,0,0), screen, ((1920-600)/2) + 85,((1080-300)/2) + 12.5)
+		clock.tick(FPS)
 		pygame.display.update()
 
 if __name__ == "__main__":
-	menu()
+	try:
+		menu()
+	except pygame.error:
+		print("					video system not initialized")
+	
