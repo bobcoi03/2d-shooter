@@ -15,36 +15,16 @@ WIN_SIZE = WIN_WIDTH, WIN_HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIN_SIZE), pygame.RESIZABLE)
 
 font = pygame.font.Font("freesansbold.ttf",13)
-# image of paintball gun
-gunImg = pygame.image.load("paintball.png")
-gunImgScale = pygame.transform.scale(gunImg, (100,50))
-gunImgCopy = gunImgScale.copy()
 
-# paintball bullet image
-paintBallBullet = pygame.image.load("circle.png")
-paintBallBulletScale = pygame.transform.scale(paintBallBullet,(12,12))
-paintBallBulletCopy = paintBallBulletScale.copy()
-
-# ANIMATIONS SPRITE
-#leftWalk = False
-#rightWalk = False
-#x,y of character
-#x = 400
-#xmove = 0
-#y = 300
-#ymove = 0
 running = True
 #
-fire = 0
-
 bullets = []
 bulletMagazine = 10
-
 #	TIME
 time = 0
 reloadTime = 0
 
-class character(object):
+class character:
 	# character image
 	characterImg = pygame.image.load("thief1.png")
 	characterImgScale = pygame.transform.scale(characterImg,(100,100))
@@ -166,31 +146,41 @@ class character(object):
 		self.x += self.xmove
 		self.y += self.ymove
 
-class weapon():
+	def __repr__(self):
+		pass
+	def __str__(self):
+		pass
+class weapon(character):
+	# image of paintball gun
+	gunImg = pygame.image.load("paintball.png")
+	gunImgScale = pygame.transform.scale(gunImg, (100,50))
+	gunImgCopy = gunImgScale.copy()
+	# paintball bullet image
+	paintBallBullet = pygame.image.load("circle.png")
+	paintBallBulletScale = pygame.transform.scale(paintBallBullet,(12,12))
+	paintBallBulletCopy = paintBallBulletScale.copy()
+
 	paintBallGunCopy_rect = gunImgCopy.get_rect()
-	characterImgRect = characterImgCopy.get_rect()
 
-	global x,y
-
-	def __init__(self,mx,my):
+	def __init__(self,x,y,leftWalk,rightWalk,walkCount,xmove,ymove):
+		super().__init__(x,y,leftWalk,rightWalk,walkCount,xmove,ymove)
+	def draw_paintball_gun(self,mx,my):
 		self.mx = mx
 		self.my = my
 
-	def draw_paintball_gun(self):
-
-		angle = math.atan2(self.my - (y + 60), self.mx - (x + 60))
+		angle = math.atan2(self.my - (self.y + 60), self.mx - (self.x + 60))
 
 		left = -1.6741997891848224 
-		leftFlip = pygame.transform.flip(gunImgCopy,False,True)
+		leftFlip = pygame.transform.flip(self.gunImgCopy,False,True)
 
 		#	GUN ROTATE IMG
-		if self.mx <= x + 60:
+		if self.mx <= self.x + 60:
 			paintBallGunRotLeft = pygame.transform.rotate(leftFlip,360-angle*57.29)
-			paintBallGunPosLeft = ((x + 60) - paintBallGunRotLeft.get_rect().width/2,(y + 60) - paintBallGunRotLeft.get_rect().height/2)
+			paintBallGunPosLeft = ((self.x + 60) - paintBallGunRotLeft.get_rect().width/2,(self.y + 60) - paintBallGunRotLeft.get_rect().height/2)
 			screen.blit(paintBallGunRotLeft,paintBallGunPosLeft)
 		else:
-			paintBallGunRot = pygame.transform.rotate(gunImgCopy,360-angle*57.29)
-			paintBallGunPos = ((x + 60) - paintBallGunRot.get_rect().width/2,(y + 60) - paintBallGunRot.get_rect().height/2)
+			paintBallGunRot = pygame.transform.rotate(self.gunImgCopy,360-angle*57.29)
+			paintBallGunPos = ((self.x + 60) - paintBallGunRot.get_rect().width/2,(self.y + 60) - paintBallGunRot.get_rect().height/2)
 			screen.blit(paintBallGunRot,paintBallGunPos)
 
 	def bullet(self):
@@ -208,7 +198,7 @@ class weapon():
 					bullets.pop(index)
 				index += 1
 				for projectile in bullets:
-					bullets1 = pygame.transform.rotate(paintBallBulletCopy, 360-projectile[0]*57.29)
+					bullets1 = pygame.transform.rotate(self.paintBallBulletCopy, 360-projectile[0]*57.29)
 					screen.blit(bullets1, (projectile[1],projectile[2]))
 		else:
 
@@ -278,7 +268,6 @@ def main():
 	ymove = 0
 
 	character1 = character(x,y,leftWalk,rightWalk,walkCount,xmove,ymove)
-	
 	while running:
 
 		mx,my = pygame.mouse.get_pos()
@@ -286,13 +275,6 @@ def main():
 		screen.fill(white)
 		character1.move()
 		character1.draw(mx,my)
-
-		
-		#paintball = weapon(mx,my)
-		#paintball.draw_paintball_gun()
-		#paintball.bullet()
-		#print(bulletMagazine)
-
 
 		'''		TEST YOUR STUFF HERE		'''
 		time += 1
@@ -304,4 +286,4 @@ if __name__ == "__main__":
 	try:
 		menu()
 	except pygame.error:
-		print("					video system not initialized")
+		print("\n\n\n					video system not initialized")
