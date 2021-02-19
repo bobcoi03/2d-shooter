@@ -24,6 +24,9 @@ bulletMagazine = 10
 time = 0
 reloadTime = 0
 
+isJump = False
+jumpCount = 10
+
 class character:
 	# character image
 	characterImg = pygame.image.load("thief1.png")
@@ -33,19 +36,23 @@ class character:
 	walkRightLoad = [pygame.image.load("thief1_running.png"),pygame.image.load("thief1_running2.png"),pygame.image.load("thief1_running3.png"),pygame.image.load("thief1_running4.png"),pygame.image.load("thief1_running5.png"),]
 	walkRight = [pygame.transform.scale(walkRightLoad[0],(100,100)),pygame.transform.scale(walkRightLoad[1],(100,100)),pygame.transform.scale(walkRightLoad[2],(100,100)),pygame.transform.scale(walkRightLoad[3],(100,100)),pygame.transform.scale(walkRightLoad[4],(100,100))]
 	walkLeft = [pygame.transform.flip(walkRight[0],True,False),pygame.transform.flip(walkRight[1],True,False),pygame.transform.flip(walkRight[2],True,False),pygame.transform.flip(walkRight[3],True,False),pygame.transform.flip(walkRight[4],True,False)]
-	def __init__(self,x,y,leftWalk,rightWalk,walkCount,xmove,ymove):
+
+	def __init__(self,x,y,leftWalk,rightWalk,walkCount,XMOVE,YMOVE,isJump,jumpCount):
 		self.x = x
 		self.y = y
 		self.leftWalk = leftWalk
 		self.rightWalk = rightWalk
 		self.walkCount = walkCount
-		self.xmove = xmove
-		self.ymove = ymove
+		self.XMOVE = XMOVE
+		self.YMOVE = YMOVE
+		self.isJump = isJump
+		self.jumpCount = jumpCount
+	
 	def draw(self,mx,my):
 		self.mx = mx
 		self.my = my
 
-		if self.walkCount + 1 >= 60:
+		if self.walkCount + 1 >= FPS:
 			self.walkCount = 0
 
 		#	LEFTWALK ANIMATION
@@ -71,18 +78,16 @@ class character:
 		if not self.leftWalk and not self.rightWalk:
 
 			if self.mx > self.x + 50:
-				screen.blit(self.characterImgCopy, (self.x,self.y))
+				screen.blit(self.characterImgScale, (self.x,self.y))
 			else:
-				screen.blit(pygame.transform.flip(self.characterImgCopy,True,False),(self.x,self.y))
+				screen.blit(pygame.transform.flip(self.characterImgScale,True,False),(self.x,self.y))
 
 	def move(self):
-
-		global running,bulletMagazine
+		global running,bulletMagazine,isJump,jumpCount
 
 		LEFT = 1
 		RIGHT = 3
 		velocity = 10
-		
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				pygame.quit()
@@ -90,29 +95,29 @@ class character:
 				screen = pygame.display.set_mode((WIN_SIZE), pygame.RESIZABLE)
 			if event.type == pygame.KEYDOWN:
 				#	MOVE LEFT
-				if event.key == pygame.K_a:
-					self.xmove = 0 - velocity
-					self.x -= self.xmove
+				if event.key == pygame.K_a and self.isJump == False:
+					self.XMOVE = 0 - velocity 
+					self.x -= self.XMOVE
 					self.leftWalk = True
 					self.rightWalk = False
 				# MOVE RIGHT
-				if event.key == pygame.K_d:
-					self.xmove = + velocity
-					self.x -= self.xmove
+				if event.key == pygame.K_d and self.isJump == False:
+					self.XMOVE = 0 + velocity
+					self.x += self.XMOVE
 					self.leftWalk = False
 					self.rightWalk = True
 				if event.key == pygame.K_ESCAPE:
 					menu()
-			if event.type == pygame.KEYUP:
-				if event.key == pygame.K_a or event.key == pygame.K_d:
-					self.xmove = 0
+			if event.type == pygame.KEYUP and self.isJump == False:
+				if event.key == pygame.K_a or event.key == pygame.K_d and self.isJump == False:
+					self.XMOVE = 0
 					self.leftWalk = False
 					self.rightWalk = False
-			if event.type == pygame.KEYDOWN:
+			if event.type == pygame.KEYDOWN and self.isJump == False:
 				# MOVE UP
-				if event.key == pygame.K_w:
-					self.ymove = - velocity
-					self.y -= self.ymove
+				if event.key == pygame.K_w and self.isJump == False:
+					self.YMOVE = 0 - velocity
+					self.y -= self.YMOVE
 					if self.mx > self.x:
 						self.rightWalk = True
 						self.leftWalk = False
@@ -120,9 +125,9 @@ class character:
 						self.rightWalk = False
 						self.leftWalk = True
 				# MOVE DOWN
-				if event.key == pygame.K_s:
-					self.ymove = + velocity
-					self.y -= self.ymove
+				if event.key == pygame.K_s and self.isJump == False:
+					self.YMOVE = 0 + velocity
+					self.y += self.YMOVE
 					if self.mx > self.x:
 						self.rightWalk = True
 						self.leftWalk = False
@@ -130,21 +135,36 @@ class character:
 						self.rightWalk = False
 						self.leftWalk = True
 					
-			if event.type == pygame.KEYUP:
-				if event.key == pygame.K_w or event.key == pygame.K_s:
-					self.ymove = 0
+			if event.type == pygame.KEYUP and self.isJump == False:
+				if event.key == pygame.K_w or event.key == pygame.K_s and self.isJump == False:
+					self.YMOVE = 0
 					self.leftWalk = False
 					self.rightWalk = False
 			if event.type == pygame.MOUSEBUTTONDOWN:
 				if event.button == LEFT:
+					centerX = self.x + 70
+					centerY = self.y + 70
 					if bulletMagazine > 0:
 						position = pygame.mouse.get_pos()
-						bullets.append([math.atan2(position[1]-(self.y + 60),position[0]-(self.x + 60)),(self.x + 60),(self.y + 60)])
+						bullets.append([math.atan2(position[1]-(centerY),position[0]-(centerX)),(centerX),(centerY)])
 						bulletMagazine -= 1
 			if event.type == pygame.MOUSEBUTTONUP and event.button == LEFT:
 				pass
-		self.x += self.xmove
-		self.y += self.ymove
+			if event.type == pygame.KEYDOWN:
+				if event.key == pygame.K_SPACE:
+					isJump = True
+			if isJump == True:
+				if jumpCount >= -10:
+					neg = 1
+					if jumpCount < 0:
+						neg = -1
+					self.y -= (jumpCount ** 2) * 0.5 * neg
+					jumpCount -= 1
+				else:
+					isJump = False
+					jumpCount = 10
+		self.x += self.XMOVE
+		self.y += self.YMOVE
 
 	def __repr__(self):
 		pass
@@ -152,12 +172,12 @@ class character:
 		pass
 class weapon(character):
 	# image of paintball gun
-	gunImg = pygame.image.load("paintball.png")
-	gunImgScale = pygame.transform.scale(gunImg, (100,50))
+	gunImg = pygame.image.load("pistol.png")
+	gunImgScale = pygame.transform.scale(gunImg, (50,25))
 	gunImgCopy = gunImgScale.copy()
 	# paintball bullet image
 	paintBallBullet = pygame.image.load("circle.png")
-	paintBallBulletScale = pygame.transform.scale(paintBallBullet,(12,12))
+	paintBallBulletScale = pygame.transform.scale(paintBallBullet,(8,8))
 	paintBallBulletCopy = paintBallBulletScale.copy()
 
 	paintBallGunCopy_rect = gunImgCopy.get_rect()
@@ -170,7 +190,10 @@ class weapon(character):
 		self.mx = mx
 		self.my = my
 
-		angle = math.atan2(self.my - (self.y + 60), self.mx - (self.x + 60))
+		centerX = self.x + 70
+		centerY = self.y + 70
+
+		angle = math.atan2(self.my - (centerY), self.mx - (centerX))
 
 		left = -1.6741997891848224 
 		leftFlip = pygame.transform.flip(self.gunImgCopy,False,True)
@@ -178,11 +201,11 @@ class weapon(character):
 		#	GUN ROTATE IMG
 		if self.mx <= self.x + 60:
 			paintBallGunRotLeft = pygame.transform.rotate(leftFlip,360-angle*57.29)
-			paintBallGunPosLeft = ((self.x + 60) - paintBallGunRotLeft.get_rect().width/2,(self.y + 60) - paintBallGunRotLeft.get_rect().height/2)
+			paintBallGunPosLeft = ((centerX) - paintBallGunRotLeft.get_rect().width/2,(centerY) - paintBallGunRotLeft.get_rect().height/2)
 			screen.blit(paintBallGunRotLeft,paintBallGunPosLeft)
 		else:
 			paintBallGunRot = pygame.transform.rotate(self.gunImgCopy,360-angle*57.29)
-			paintBallGunPos = ((self.x + 60) - paintBallGunRot.get_rect().width/2,(self.y + 60) - paintBallGunRot.get_rect().height/2)
+			paintBallGunPos = ((centerX) - paintBallGunRot.get_rect().width/2,(centerY) - paintBallGunRot.get_rect().height/2)
 			screen.blit(paintBallGunRot,paintBallGunPos)
 
 	def bullet(self):
@@ -203,7 +226,6 @@ class weapon(character):
 					bullets1 = pygame.transform.rotate(self.paintBallBulletCopy, 360-projectile[0]*57.29)
 					screen.blit(bullets1, (projectile[1],projectile[2]))
 		else:
-
 			reloadTime += 1
 			if reloadTime == 150:	# 5 seconds * 60frames per second
 				reloadTime = 0
@@ -266,10 +288,13 @@ def main():
 	leftWalk = False
 	rightWalk = False
 	walkCount = 0
-	xmove = 0
-	ymove = 0
+	XMOVE = 0
+	YMOVE = 0
 
-	character1 = character(x,y,leftWalk,rightWalk,walkCount,xmove,ymove)
+	isJump = False
+	jumpCount = 10
+
+	character1 = character(x,y,leftWalk,rightWalk,walkCount,XMOVE,YMOVE,isJump,jumpCount)
 	while running:
 
 		mx,my = pygame.mouse.get_pos()
@@ -278,7 +303,7 @@ def main():
 		character1.move()
 		character1.draw(mx,my)
 
-		
+
 		paintball1 = weapon(character1)
 		paintball1.draw_paintball_gun(mx,my)
 		paintball1.bullet()
@@ -290,7 +315,4 @@ def main():
 		pygame.display.update()
 
 if __name__ == "__main__":
-	try:
-		menu()
-	except pygame.error:
-		print("\n\n\n					video system not initialized")
+	menu()
