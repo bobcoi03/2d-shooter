@@ -123,6 +123,7 @@ class character:
 					x -= xmove
 					leftWalk = False
 					rightWalk = True
+					print(xmove)
 				if event.key == pygame.K_ESCAPE:
 					menu()
 			if event.type == pygame.KEYUP:
@@ -159,9 +160,10 @@ class character:
 					rightWalk = False
 			if event.type == pygame.MOUSEBUTTONDOWN:
 				if event.button == LEFT:
-					position = pygame.mouse.get_pos()
-					bullets.append([math.atan2(position[1]-(y + 60),position[0]-(x + 60)),(x + 60),(y + 60)])
-					bulletMagazine -= 1
+					if bulletMagazine > 0:
+						position = pygame.mouse.get_pos()
+						bullets.append([math.atan2(position[1]-(y + 60),position[0]-(x + 60)),(x + 60),(y + 60)])
+						bulletMagazine -= 1
 			if event.type == pygame.MOUSEBUTTONUP and event.button == LEFT:
 				pass
 class weapon:
@@ -297,4 +299,3 @@ if __name__ == "__main__":
 		menu()
 	except pygame.error:
 		print("					video system not initialized")
-	
