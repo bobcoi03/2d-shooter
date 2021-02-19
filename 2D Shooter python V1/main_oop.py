@@ -162,8 +162,10 @@ class weapon(character):
 
 	paintBallGunCopy_rect = gunImgCopy.get_rect()
 
-	def __init__(self,x,y,leftWalk,rightWalk,walkCount,xmove,ymove):
-		super().__init__(x,y,leftWalk,rightWalk,walkCount,xmove,ymove)
+	def __init__(self, class_character):
+		self.x = class_character.x
+		self.y = class_character.y
+
 	def draw_paintball_gun(self,mx,my):
 		self.mx = mx
 		self.my = my
@@ -275,6 +277,11 @@ def main():
 		screen.fill(white)
 		character1.move()
 		character1.draw(mx,my)
+
+		
+		paintball1 = weapon(character1)
+		paintball1.draw_paintball_gun(mx,my)
+		paintball1.bullet()
 
 		'''		TEST YOUR STUFF HERE		'''
 		time += 1
