@@ -13,9 +13,7 @@ red = 255,0,0
 WIN_SIZE = WIN_WIDTH, WIN_HEIGHT = 800, 600
 
 screen = pygame.display.set_mode((WIN_SIZE), pygame.RESIZABLE)
-
 font = pygame.font.Font("freesansbold.ttf",13)
-
 running = True
 #
 bullets = []
@@ -37,7 +35,7 @@ class character:
 	walkRight = [pygame.transform.scale(walkRightLoad[0],(100,100)),pygame.transform.scale(walkRightLoad[1],(100,100)),pygame.transform.scale(walkRightLoad[2],(100,100)),pygame.transform.scale(walkRightLoad[3],(100,100)),pygame.transform.scale(walkRightLoad[4],(100,100))]
 	walkLeft = [pygame.transform.flip(walkRight[0],True,False),pygame.transform.flip(walkRight[1],True,False),pygame.transform.flip(walkRight[2],True,False),pygame.transform.flip(walkRight[3],True,False),pygame.transform.flip(walkRight[4],True,False)]
 
-	def __init__(self,x,y,leftWalk,rightWalk,walkCount,XMOVE,YMOVE,isJump,jumpCount):
+	def __init__(self,x,y,leftWalk,rightWalk,walkCount,XMOVE,YMOVE):
 		self.x = x
 		self.y = y
 		self.leftWalk = leftWalk
@@ -45,8 +43,8 @@ class character:
 		self.walkCount = walkCount
 		self.XMOVE = XMOVE
 		self.YMOVE = YMOVE
-		self.isJump = isJump
-		self.jumpCount = jumpCount
+		self.isJump = False
+		self.jumpCount = 10
 	
 	def draw(self,mx,my):
 		self.mx = mx
@@ -54,15 +52,14 @@ class character:
 
 		if self.walkCount + 1 >= FPS:
 			self.walkCount = 0
-
 		#	LEFTWALK ANIMATION
 		frames = 12
 		if self.leftWalk:
 			if self.mx > self.x + 50:
 				screen.blit(self.walkRight[self.walkCount//frames], (self.x,self.y))
 				self.walkCount += 1
-
 			else:
+
 				screen.blit(self.walkLeft[self.walkCount//frames], (self.x,self.y))
 				self.walkCount += 1
 		#	RIGHTWALK ANIMATION
@@ -82,6 +79,19 @@ class character:
 			else:
 				screen.blit(pygame.transform.flip(self.characterImgScale,True,False),(self.x,self.y))
 
+	def jump(self):
+		if self.isJump:
+			if self.jumpCount >= -10:
+				neg = 1
+				if self.jumpCount < 0:
+					neg = - 1
+				self.y -= self.jumpCount**2 * 0.5 * neg
+				self.jumpCount -= 1
+			else:
+				self.isJump = False
+				self.jumpCount = 10
+
+
 	def move(self):
 		global running,bulletMagazine,isJump,jumpCount
 
@@ -91,55 +101,60 @@ class character:
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				pygame.quit()
+				sys.exit()
+				break
 			if event.type == pygame.RESIZABLE:
-				screen = pygame.display.set_mode((WIN_SIZE), pygame.RESIZABLE)
+				screen
 			if event.type == pygame.KEYDOWN:
 				#	MOVE LEFT
-				if event.key == pygame.K_a and self.isJump == False:
+				if event.key == pygame.K_a:
 					self.XMOVE = 0 - velocity 
 					self.x -= self.XMOVE
 					self.leftWalk = True
 					self.rightWalk = False
 				# MOVE RIGHT
-				if event.key == pygame.K_d and self.isJump == False:
+				if event.key == pygame.K_d:
 					self.XMOVE = 0 + velocity
 					self.x += self.XMOVE
 					self.leftWalk = False
 					self.rightWalk = True
 				if event.key == pygame.K_ESCAPE:
 					menu()
-			if event.type == pygame.KEYUP and self.isJump == False:
-				if event.key == pygame.K_a or event.key == pygame.K_d and self.isJump == False:
+
+			if event.type == pygame.KEYUP:
+				if event.key == pygame.K_a or event.key == pygame.K_d:
 					self.XMOVE = 0
 					self.leftWalk = False
 					self.rightWalk = False
-			if event.type == pygame.KEYDOWN and self.isJump == False:
+			if event.type == pygame.KEYDOWN:
+				pass
 				# MOVE UP
-				if event.key == pygame.K_w and self.isJump == False:
-					self.YMOVE = 0 - velocity
-					self.y -= self.YMOVE
-					if self.mx > self.x:
-						self.rightWalk = True
-						self.leftWalk = False
-					else:
-						self.rightWalk = False
-						self.leftWalk = True
+				#if event.key == pygame.K_w and self.isJump == False:
+				#	self.YMOVE = 0 - velocity
+				#	self.y -= self.YMOVE
+				#	if self.mx > self.x:
+				#		self.rightWalk = True
+				#		self.leftWalk = False
+				#	else:
+				#		self.rightWalk = False
+				#		self.leftWalk = True
 				# MOVE DOWN
-				if event.key == pygame.K_s and self.isJump == False:
-					self.YMOVE = 0 + velocity
-					self.y += self.YMOVE
-					if self.mx > self.x:
-						self.rightWalk = True
-						self.leftWalk = False
-					else:
-						self.rightWalk = False
-						self.leftWalk = True
+				#if event.key == pygame.K_s and self.isJump == False:
+				#	self.YMOVE = 0 + velocity
+				#	self.y += self.YMOVE
+				#	if self.mx > self.x:
+				#		self.rightWalk = True
+				#		self.leftWalk = False
+				#	else:
+				#		self.rightWalk = False
+				#		self.leftWalk = True
 					
 			if event.type == pygame.KEYUP and self.isJump == False:
 				if event.key == pygame.K_w or event.key == pygame.K_s and self.isJump == False:
 					self.YMOVE = 0
 					self.leftWalk = False
 					self.rightWalk = False
+			#	FIRE BULLET
 			if event.type == pygame.MOUSEBUTTONDOWN:
 				if event.button == LEFT:
 					centerX = self.x + 70
@@ -148,21 +163,11 @@ class character:
 						position = pygame.mouse.get_pos()
 						bullets.append([math.atan2(position[1]-(centerY),position[0]-(centerX)),(centerX),(centerY)])
 						bulletMagazine -= 1
-			if event.type == pygame.MOUSEBUTTONUP and event.button == LEFT:
-				pass
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_SPACE:
-					isJump = True
-			if isJump == True:
-				if jumpCount >= -10:
-					neg = 1
-					if jumpCount < 0:
-						neg = -1
-					self.y -= (jumpCount ** 2) * 0.5 * neg
-					jumpCount -= 1
-				else:
-					isJump = False
-					jumpCount = 10
+					self.isJump = True
+					self.jump()
+
 		self.x += self.XMOVE
 		self.y += self.YMOVE
 
@@ -291,23 +296,20 @@ def main():
 	XMOVE = 0
 	YMOVE = 0
 
-	isJump = False
-	jumpCount = 10
-
-	character1 = character(x,y,leftWalk,rightWalk,walkCount,XMOVE,YMOVE,isJump,jumpCount)
+	character1 = character(x,y,leftWalk,rightWalk,walkCount,XMOVE,YMOVE)
 	while running:
 
 		mx,my = pygame.mouse.get_pos()
 
 		screen.fill(white)
+
 		character1.move()
 		character1.draw(mx,my)
-
+		character1.jump()
 
 		paintball1 = weapon(character1)
 		paintball1.draw_paintball_gun(mx,my)
 		paintball1.bullet()
-
 		'''		TEST YOUR STUFF HERE		'''
 		time += 1
 		draw_text('TIME:' + str(time), font, (0,0,0), screen, ((1920-600)/2) + 85,((1080-300)/2) + 12.5)
