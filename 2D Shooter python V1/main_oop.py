@@ -17,13 +17,14 @@ font = pygame.font.Font("freesansbold.ttf",13)
 running = True
 #
 bullets = []
-bulletMagazine = 10
 #	TIME
 time = 0
-reloadTime = 0
 
-isJump = False
-jumpCount = 10
+def draw_text(text, font, color, surface,x,y):
+	textobj = font.render(text, 1, color)
+	textrect = textobj.get_rect()
+	textrect.topleft = (x,y)
+	surface.blit(textobj, textrect)
 
 class character:
 	# character image
@@ -35,6 +36,8 @@ class character:
 	walkRight = [pygame.transform.scale(walkRightLoad[0],(100,100)),pygame.transform.scale(walkRightLoad[1],(100,100)),pygame.transform.scale(walkRightLoad[2],(100,100)),pygame.transform.scale(walkRightLoad[3],(100,100)),pygame.transform.scale(walkRightLoad[4],(100,100))]
 	walkLeft = [pygame.transform.flip(walkRight[0],True,False),pygame.transform.flip(walkRight[1],True,False),pygame.transform.flip(walkRight[2],True,False),pygame.transform.flip(walkRight[3],True,False),pygame.transform.flip(walkRight[4],True,False)]
 
+	runReloadfunction = False
+
 	def __init__(self,x,y,leftWalk,rightWalk,walkCount,XMOVE,YMOVE):
 		self.x = x
 		self.y = y
@@ -45,6 +48,9 @@ class character:
 		self.YMOVE = YMOVE
 		self.isJump = False
 		self.jumpCount = 10
+		self.bulletMagazine = 10
+		self.reloadTime = 0
+		self.runReloadfunction = False
 	
 	def draw(self,mx,my):
 		self.mx = mx
@@ -91,9 +97,18 @@ class character:
 				self.isJump = False
 				self.jumpCount = 10
 
+	def reload(self):
+		if self.bulletMagazine == 0:
+			self.reloadTime += 1
+			if self.reloadTime >= 150:
+				self.bulletMagazine = 10
+				self.reloadTime = 0
+				self.runReloadfunction = False
+		draw_text("Reloading....", font, red,screen, ((1920-600)/2) + 85,((1080-300)/2) -100)
+
 
 	def move(self):
-		global running,bulletMagazine,isJump,jumpCount
+		global running
 
 		LEFT = 1
 		RIGHT = 3
@@ -120,7 +135,11 @@ class character:
 					self.rightWalk = True
 				if event.key == pygame.K_ESCAPE:
 					menu()
-
+				if event.key == pygame.K_SPACE:
+					self.isJump = True
+					self.jump()
+				if event.key == pygame.K_r:
+					self.runReloadfunction = True
 			if event.type == pygame.KEYUP:
 				if event.key == pygame.K_a or event.key == pygame.K_d:
 					self.XMOVE = 0
@@ -159,18 +178,14 @@ class character:
 				if event.button == LEFT:
 					centerX = self.x + 70
 					centerY = self.y + 70
-					if bulletMagazine > 0:
-						position = pygame.mouse.get_pos()
+					position = pygame.mouse.get_pos()
+					if self.bulletMagazine > 0:
 						bullets.append([math.atan2(position[1]-(centerY),position[0]-(centerX)),(centerX),(centerY)])
-						bulletMagazine -= 1
-			if event.type == pygame.KEYDOWN:
-				if event.key == pygame.K_SPACE:
-					self.isJump = True
-					self.jump()
-
+						self.bulletMagazine -= 1
+		if self.runReloadfunction == True:
+			self.reload()
 		self.x += self.XMOVE
 		self.y += self.YMOVE
-
 	def __repr__(self):
 		pass
 	def __str__(self):
@@ -212,51 +227,44 @@ class weapon(character):
 			paintBallGunRot = pygame.transform.rotate(self.gunImgCopy,360-angle*57.29)
 			paintBallGunPos = ((centerX) - paintBallGunRot.get_rect().width/2,(centerY) - paintBallGunRot.get_rect().height/2)
 			screen.blit(paintBallGunRot,paintBallGunPos)
-
 	def bullet(self):
 		global bulletMagazine,reloadTime
 
-		if bulletMagazine in range(1,11):
-			for bullet in bullets:
-				bulletspeed = 25
-				index=0
-				velx = math.cos(bullet[0])*bulletspeed
-				vely = math.sin(bullet[0])*bulletspeed
-				bullet[1] += velx
-				bullet[2] += vely 
-				if bullet[1]<-64 or bullet[1]>2000 or bullet[2]<-64 or bullet[2]>2000:
-					bullets.pop(index)
-				index += 1
-				for projectile in bullets:
-					bullets1 = pygame.transform.rotate(self.paintBallBulletCopy, 360-projectile[0]*57.29)
-					screen.blit(bullets1, (projectile[1],projectile[2]))
-		else:
-			reloadTime += 1
-			if reloadTime == 150:	# 5 seconds * 60frames per second
-				reloadTime = 0
-				bulletMagazine = 10
+		for bullet in bullets:
+			bulletspeed = 25
+			index=0
+			velx = math.cos(bullet[0])*bulletspeed
+			vely = math.sin(bullet[0])*bulletspeed
+			bullet[1] += velx
+			bullet[2] += vely 
+			if bullet[1]<-64 or bullet[1]>2000 or bullet[2]<-64 or bullet[2]>2000:
+				bullets.pop(index)
+			index += 1
+			for projectile in bullets:
+				bullets1 = pygame.transform.rotate(self.paintBallBulletCopy, 360-projectile[0]*57.29)
+				screen.blit(bullets1, (projectile[1],projectile[2]))
 
-			'''									GET X,Y COORDINATES OF ROTATED GUN IMAGE
-			cos = math.cos
-			sin = math.cos
-			a = angle
-			xm = x + 60
-			ym = y + 60
-			xpos = xm + 15
-			ypos = ym - 15
-			xr = (xpos - xm) * cos(a) - (ypos - ym) * sin(a) + xm
-			yr = (xpos - xm) * sin(a) + (ypos - ym) * cos(a) + ym
-			pygame.draw.line(screen, (red),(xr,yr),(self.mx,self.my))
-			'''
+
+		#else:
+			#reloadTime += 1
+			#if reloadTime == 150:	# 5 seconds * 60frames per second
+			#	reloadTime = 0
+			#	bulletMagazine = 10
+
+		'''									GET X,Y COORDINATES OF ROTATED GUN IMAGE
+		cos = math.cos
+		sin = math.cos
+		a = angle
+		xm = x + 60
+		ym = y + 60
+		xpos = xm + 15
+		ypos = ym - 15
+		xr = (xpos - xm) * cos(a) - (ypos - ym) * sin(a) + xm
+		yr = (xpos - xm) * sin(a) + (ypos - ym) * cos(a) + ym
+		pygame.draw.line(screen, (red),(xr,yr),(self.mx,self.my))
+		'''
 
 		# FIRE BULLET MECHANIC
-
-def draw_text(text, font, color, surface,x,y):
-	textobj = font.render(text, 1, color)
-	textrect = textobj.get_rect()
-	textrect.topleft = (x,y)
-	surface.blit(textobj, textrect)
-
 def menu():
 	while True:
 
@@ -286,7 +294,7 @@ def menu():
 
 def main():
 
-	global white, screen, running,bulletMagazine, time
+	global white, screen, running,bulletMagazine, time, reloadTime
 
 	x = 300
 	y = 400
@@ -312,7 +320,8 @@ def main():
 		paintball1.bullet()
 		'''		TEST YOUR STUFF HERE		'''
 		time += 1
-		draw_text('TIME:' + str(time), font, (0,0,0), screen, ((1920-600)/2) + 85,((1080-300)/2) + 12.5)
+		draw_text('TIME:          ' + str(time), font, (0,0,0), screen, ((1920-600)/2) + 85,((1080-300)/2) + 12.5)
+		draw_text('RELOADTIME:        ' + str(character1.reloadTime), font, (0,0,0), screen, ((1920-600)/2) + 85,((1080-300)/2) + 50)
 		clock.tick(FPS)
 		pygame.display.update()
 
