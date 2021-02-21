@@ -1,14 +1,16 @@
 import sys, pygame, time, random, math
 from math import sqrt
 from pygame.locals import *
-
+import draw.py
 pygame.init()
 
 clock = pygame.time.Clock()
 FPS = 60
 
-white = 255,255,255
-red = 255,0,0
+WHITE = 255,255,255
+RED = 255,0,0
+GREEN = 0,128,0
+BLUE = 0,0,255
 
 WIN_SIZE = WIN_WIDTH, WIN_HEIGHT = 800, 600
 
@@ -104,7 +106,7 @@ class character:
 				self.bulletMagazine = 10
 				self.reloadTime = 0
 				self.runReloadfunction = False
-		draw_text("Reloading....", font, red,screen, ((1920-600)/2) + 85,((1080-300)/2) -100)
+		draw_text("Reloading....", font, RED,screen, ((1920-600)/2) + 85,((1080-300)/2) -100)
 
 
 	def move(self):
@@ -128,17 +130,17 @@ class character:
 					self.leftWalk = True
 					self.rightWalk = False
 				# MOVE RIGHT
-				if event.key == pygame.K_d:
+				elif event.key == pygame.K_d:
 					self.XMOVE = 0 + velocity
 					self.x += self.XMOVE
 					self.leftWalk = False
 					self.rightWalk = True
-				if event.key == pygame.K_ESCAPE:
+				elif event.key == pygame.K_ESCAPE:
 					menu()
-				if event.key == pygame.K_SPACE:
+				elif event.key == pygame.K_SPACE:
 					self.isJump = True
 					self.jump()
-				if event.key == pygame.K_r:
+				elif event.key == pygame.K_r:
 					self.runReloadfunction = True
 			if event.type == pygame.KEYUP:
 				if event.key == pygame.K_a or event.key == pygame.K_d:
@@ -146,27 +148,26 @@ class character:
 					self.leftWalk = False
 					self.rightWalk = False
 			if event.type == pygame.KEYDOWN:
-				pass
 				# MOVE UP
-				#if event.key == pygame.K_w and self.isJump == False:
-				#	self.YMOVE = 0 - velocity
-				#	self.y -= self.YMOVE
-				#	if self.mx > self.x:
-				#		self.rightWalk = True
-				#		self.leftWalk = False
-				#	else:
-				#		self.rightWalk = False
-				#		self.leftWalk = True
+				if event.key == pygame.K_w and self.isJump == False:
+					self.YMOVE = 0 - velocity
+					self.y -= self.YMOVE
+					if self.mx > self.x:
+						self.rightWalk = True
+						self.leftWalk = False
+					else:
+						self.rightWalk = False
+						self.leftWalk = True
 				# MOVE DOWN
-				#if event.key == pygame.K_s and self.isJump == False:
-				#	self.YMOVE = 0 + velocity
-				#	self.y += self.YMOVE
-				#	if self.mx > self.x:
-				#		self.rightWalk = True
-				#		self.leftWalk = False
-				#	else:
-				#		self.rightWalk = False
-				#		self.leftWalk = True
+				elif event.key == pygame.K_s and self.isJump == False:
+					self.YMOVE = 0 + velocity
+					self.y += self.YMOVE
+					if self.mx > self.x:
+						self.rightWalk = True
+						self.leftWalk = False
+					else:
+						self.rightWalk = False
+						self.leftWalk = True
 					
 			if event.type == pygame.KEYUP and self.isJump == False:
 				if event.key == pygame.K_w or event.key == pygame.K_s and self.isJump == False:
@@ -228,7 +229,6 @@ class weapon(character):
 			paintBallGunPos = ((centerX) - paintBallGunRot.get_rect().width/2,(centerY) - paintBallGunRot.get_rect().height/2)
 			screen.blit(paintBallGunRot,paintBallGunPos)
 	def bullet(self):
-		global bulletMagazine,reloadTime
 
 		for bullet in bullets:
 			bulletspeed = 25
@@ -265,13 +265,22 @@ class weapon(character):
 		'''
 
 		# FIRE BULLET MECHANIC
+
+def draw_rectangle(leftX,leftY,width,height,color,fill,thickness):
+	rectangle = pygame.Rect(leftX,leftY,width,height)
+
+	if fill == True:
+		draw_rect = pygame.draw.rect(screen, color, rectangle)
+	if fill == False:
+		draw_rect = pygame.draw.rect(screen, color, rectangle,width=thickness)
+
 def menu():
 	while True:
 
 		mx,my = pygame.mouse.get_pos()
 		clock.tick(FPS)
 
-		screen.fill(white)
+		screen.fill(WHITE)
 
 		LEFTCLICK = 1
 		click = False
@@ -288,13 +297,13 @@ def menu():
 		if button_1.collidepoint((mx, my)):
 			if click:
 				main()
-		pygame.draw.rect(screen, (255,0,0), button_1)
+		a = pygame.draw.rect(screen, RED, button_1,width=0,)
 		draw_text('PLAY', font, (0,0,0), screen, ((1920-600)/2) + 85,((1080-300)/2) + 12.5)
 		pygame.display.update()
 
 def main():
 
-	global white, screen, running,bulletMagazine, time, reloadTime
+	global screen, running, time
 
 	x = 300
 	y = 400
@@ -304,12 +313,14 @@ def main():
 	XMOVE = 0
 	YMOVE = 0
 
+	print(pygame.font.get_fonts())
+
 	character1 = character(x,y,leftWalk,rightWalk,walkCount,XMOVE,YMOVE)
 	while running:
 
 		mx,my = pygame.mouse.get_pos()
 
-		screen.fill(white)
+		screen.fill(WHITE)
 
 		character1.move()
 		character1.draw(mx,my)
@@ -322,6 +333,8 @@ def main():
 		time += 1
 		draw_text('TIME:          ' + str(time), font, (0,0,0), screen, ((1920-600)/2) + 85,((1080-300)/2) + 12.5)
 		draw_text('RELOADTIME:        ' + str(character1.reloadTime), font, (0,0,0), screen, ((1920-600)/2) + 85,((1080-300)/2) + 50)
+		healthpoints =draw_rectangle(((1920-600)/2) + 85,((1080-300)/2) + 380,200,25,GREEN,True,3)
+		manapoints =draw_rectangle(((1920-600)/2) + 85,((1080-300)/2) + 410,200,25,BLUE,True,3)
 		clock.tick(FPS)
 		pygame.display.update()
 
