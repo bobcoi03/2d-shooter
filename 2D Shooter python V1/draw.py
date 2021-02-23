@@ -1,6 +1,7 @@
 import pygame,sys
 WIN_SIZE = WIN_WIDTH, WIN_HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIN_SIZE), pygame.RESIZABLE)
+
 def draw_text(text, font, color, surface,x,y):
 	textobj = font.render(text, 1, color)
 	textrect = textobj.get_rect()

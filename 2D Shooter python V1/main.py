@@ -46,7 +46,9 @@ class character:
 		self.bulletMagazine = 10
 		self.reloadTime = 0
 		self.runReloadfunction = False
-	
+	def draw_bulletMagazine(self):
+		draw.draw_text("Ammo:    " + str(self.bulletMagazine),font, GREEN,screen,950,775)
+
 	def draw(self,mx,my,scroll):
 		self.scroll0 = scroll[0]
 		self.scroll1 = scroll[1]
@@ -59,28 +61,28 @@ class character:
 		frames = 12
 		if self.leftWalk:
 			if self.mx > self.x + 50:
-				screen.blit(self.walkRight[self.walkCount//frames], (self.x-self.scroll0,self.y-self.scroll1))
+				screen.blit(self.walkRight[self.walkCount//frames], (self.x,self.y))
 				self.walkCount += 1
 			else:
 
-				screen.blit(self.walkLeft[self.walkCount//frames], (self.x-self.scroll0,self.y-self.scroll1))
+				screen.blit(self.walkLeft[self.walkCount//frames], (self.x,self.y))
 				self.walkCount += 1
 		#	RIGHTWALK ANIMATION
 		if self.rightWalk:
 			if self.mx < self.x + 50:
-				screen.blit(self.walkLeft[self.walkCount//frames], (self.x-self.scroll0,self.y-self.scroll1))
+				screen.blit(self.walkLeft[self.walkCount//frames], (self.x,self.y))
 				self.walkCount += 1
 				
 			else:
-				screen.blit(self.walkRight[self.walkCount//frames], (self.x-self.scroll0,self.y-self.scroll1))
+				screen.blit(self.walkRight[self.walkCount//frames], (self.x,self.y))
 				self.walkCount += 1
 		#	BLIT LEFT OR RIGHT FACING CHARACTER STANDING STILL
 		if not self.leftWalk and not self.rightWalk:
 
 			if self.mx > self.x + 50:
-				screen.blit(self.characterImgScale, (self.x-self.scroll0,self.y-self.scroll1))
+				screen.blit(self.characterImgScale, (self.x,self.y))
 			else:
-				screen.blit(pygame.transform.flip(self.characterImgScale,True,False),(self.x-self.scroll0,self.y-self.scroll1))
+				screen.blit(pygame.transform.flip(self.characterImgScale,True,False),(self.x,self.y))
 
 	def jump(self):
 		if self.isJump:
@@ -187,10 +189,14 @@ class character:
 	def __str__(self):
 		pass
 class weapon(character):
-	# image of paintball gun
+	# image of pistol gun
 	gunImg = pygame.image.load("pistol.png")
 	gunImgScale = pygame.transform.scale(gunImg, (50,25))
 	gunImgCopy = gunImgScale.copy()
+	# image of paintball gun
+	gunImg1 = pygame.image.load("gun.png")
+	gunImgScale1 = pygame.transform.scale(gunImg1, (50,25))
+	gunImgCopy1 = gunImgScale1.copy()
 	# paintball bullet image
 	paintBallBullet = pygame.image.load("circle.png")
 	paintBallBulletScale = pygame.transform.scale(paintBallBullet,(8,8))
@@ -212,7 +218,7 @@ class weapon(character):
 		angle = math.atan2(self.my - (centerY), self.mx - (centerX))
 
 		left = -1.6741997891848224 
-		leftFlip = pygame.transform.flip(self.gunImgCopy,False,True)
+		leftFlip = pygame.transform.flip(self.gunImgCopy1,False,True)
 
 		#	GUN ROTATE IMG
 		if self.mx <= self.x + 60:
@@ -220,7 +226,7 @@ class weapon(character):
 			paintBallGunPosLeft = ((centerX) - paintBallGunRotLeft.get_rect().width/2,(centerY) - paintBallGunRotLeft.get_rect().height/2)
 			screen.blit(paintBallGunRotLeft,paintBallGunPosLeft)
 		else:
-			paintBallGunRot = pygame.transform.rotate(self.gunImgCopy,360-angle*57.29)
+			paintBallGunRot = pygame.transform.rotate(self.gunImgCopy1,360-angle*57.29)
 			paintBallGunPos = ((centerX) - paintBallGunRot.get_rect().width/2,(centerY) - paintBallGunRot.get_rect().height/2)
 			screen.blit(paintBallGunRot,paintBallGunPos)
 	def bullet(self):
@@ -303,20 +309,22 @@ def main():
 
 	character1 = character(x,y,leftWalk,rightWalk,walkCount,XMOVE,YMOVE)
 	while running:
+		
+		scroll[0] += (character1.x-scroll[0]-WIN_WIDTH/2)/20
+		scroll[1] += (character1.y-scroll[1]-WIN_HEIGHT/2)/20
 
 		mx,my = pygame.mouse.get_pos()
 
 		screen.fill(WHITE)
 
 		character1.move()
-		scroll[0] += (character1.x-scroll[0]-(WIN_WIDTH/2))/20
-		scroll[1] += (character1.y-scroll[1]-(WIN_HEIGHT/2))/20
 		character1.draw(mx,my,scroll)
 		character1.jump()
+		character1.draw_bulletMagazine()
 
-		#paintball1 = weapon(character1)
-		#paintball1.draw_paintball_gun(mx,my)
-		#paintball1.bullet()
+		paintball1 = weapon(character1)
+		paintball1.draw_paintball_gun(mx,my)
+		paintball1.bullet()
 		'''		TEST YOUR STUFF HERE		'''
 		time += 1
 		draw.draw_text('TIME:          ' + str(time), font, (0,0,0), screen, ((1920-600)/2) + 85,((1080-300)/2) + 12.5)
@@ -327,4 +335,4 @@ def main():
 		pygame.display.update()
 
 if __name__ == "__main__":
-	menu()
+	main()
