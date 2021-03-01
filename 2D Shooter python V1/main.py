@@ -1,7 +1,7 @@
 import sys, pygame, time, random, math
 from math import sqrt
 from pygame.locals import *
-import draw
+import draw, map.py
 
 pygame.init()
 
