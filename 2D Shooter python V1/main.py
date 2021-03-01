@@ -2,6 +2,7 @@ import sys, pygame, time, random, math
 from math import sqrt
 from pygame.locals import *
 import draw
+
 pygame.init()
 
 clock = pygame.time.Clock()
@@ -10,7 +11,7 @@ FPS = 60
 WHITE = 255,255,255
 RED = 255,0,0
 GREEN = 0,128,0
-BLUE = 0,0,255
+BLUE = 0,255,255
 
 WIN_SIZE = WIN_WIDTH, WIN_HEIGHT = 800, 600
 
@@ -23,7 +24,8 @@ bullets = []
 time = 0
 class character:
 	# character image
-	characterImg = pygame.image.load("thief1.png")
+	characterImg = pygame.image.load("thief1.png").convert_alpha()
+	characterImg.set_colorkey(BLUE)
 	characterImgScale = pygame.transform.scale(characterImg,(100,100))
 	characterImgCopy = characterImgScale.copy()
 	#	ANIMATION SPRITE
@@ -33,7 +35,7 @@ class character:
 
 	runReloadfunction = False
 
-	def __init__(self,x,y,leftWalk,rightWalk,walkCount,XMOVE,YMOVE):
+	def __init__(self,x,y,leftWalk,rightWalk,walkCount,XMOVE,YMOVE, scroll):
 		self.x = x
 		self.y = y
 		self.leftWalk = leftWalk
@@ -46,12 +48,13 @@ class character:
 		self.bulletMagazine = 10
 		self.reloadTime = 0
 		self.runReloadfunction = False
+		self.scroll0 = scroll[0]
+		self.scroll1 = scroll[1]
+	
 	def draw_bulletMagazine(self):
 		draw.draw_text("Ammo:    " + str(self.bulletMagazine),font, GREEN,screen,950,775)
 
-	def draw(self,mx,my,scroll):
-		self.scroll0 = scroll[0]
-		self.scroll1 = scroll[1]
+	def draw(self,mx,my):
 		self.mx = mx
 		self.my = my
 
@@ -61,28 +64,28 @@ class character:
 		frames = 12
 		if self.leftWalk:
 			if self.mx > self.x + 50:
-				screen.blit(self.walkRight[self.walkCount//frames], (self.x,self.y))
+				screen.blit(self.walkRight[self.walkCount//frames], (self.x - self.scroll0,self.y - self.scroll1))
 				self.walkCount += 1
 			else:
 
-				screen.blit(self.walkLeft[self.walkCount//frames], (self.x,self.y))
+				screen.blit(self.walkLeft[self.walkCount//frames], (self.x - self.scroll0,self.y - self.scroll1))
 				self.walkCount += 1
 		#	RIGHTWALK ANIMATION
 		if self.rightWalk:
 			if self.mx < self.x + 50:
-				screen.blit(self.walkLeft[self.walkCount//frames], (self.x,self.y))
+				screen.blit(self.walkLeft[self.walkCount//frames], (self.x - self.scroll0,self.y - self.scroll1))
 				self.walkCount += 1
 				
 			else:
-				screen.blit(self.walkRight[self.walkCount//frames], (self.x,self.y))
+				screen.blit(self.walkRight[self.walkCount//frames], (self.x - self.scroll0,self.y - self.scroll1))
 				self.walkCount += 1
 		#	BLIT LEFT OR RIGHT FACING CHARACTER STANDING STILL
 		if not self.leftWalk and not self.rightWalk:
 
-			if self.mx > self.x + 50:
-				screen.blit(self.characterImgScale, (self.x,self.y))
+			if self.mx > self.x - self.scroll0:
+				screen.blit(self.characterImgScale, (self.x - self.scroll0,self.y - self.scroll1))
 			else:
-				screen.blit(pygame.transform.flip(self.characterImgScale,True,False),(self.x,self.y))
+				screen.blit(pygame.transform.flip(self.characterImgScale,True,False),(self.x - self.scroll0,self.y - self.scroll1))
 
 	def jump(self):
 		if self.isJump:
@@ -97,16 +100,16 @@ class character:
 				self.jumpCount = 10
 
 	def reload(self):
-		if self.bulletMagazine == 0:
-			self.reloadTime += 1
-			if self.reloadTime >= 150:
-				self.bulletMagazine = 10
-				self.reloadTime = 0
-				self.runReloadfunction = False
+		self.reloadTime += 1
+		if self.reloadTime >= 150:
+			self.bulletMagazine = 10
+			self.reloadTime = 0
+			self.runReloadfunction = False
 		draw.draw_text("Reloading....", font, RED,screen, ((1920-600)/2) + 85,((1080-300)/2) -100)
 
-
-	def move(self):
+	def move(self,nozzleX,nozzleY):
+		self.nozzleX = nozzleX
+		self.nozzleY = nozzleY
 		global running
 
 		LEFT = 1
@@ -137,6 +140,7 @@ class character:
 				elif event.key == pygame.K_SPACE:
 					self.isJump = True
 					self.jump()
+					print("space is pressed")
 				elif event.key == pygame.K_r:
 					self.runReloadfunction = True
 			if event.type == pygame.KEYUP:
@@ -178,8 +182,15 @@ class character:
 					centerY = self.y + 70
 					position = pygame.mouse.get_pos()
 					if self.bulletMagazine > 0:
-						bullets.append([math.atan2(position[1]-(centerY),position[0]-(centerX)),(centerX),(centerY)])
+						'''						COORDINATES OF BULLET IN TIME            		       '''
+						bullets.append([math.atan2((position[1])-(centerY - self.scroll1),(position[0])-(centerX - self.scroll1)),(centerX),(centerY)])
 						self.bulletMagazine -= 1
+					#centerX = self.x + 70
+					#centerY = self.y + 70
+					#position = pygame.mouse.get_pos()
+					#if self.bulletMagazine > 0:
+					#	bullets.append([math.atan2(position[1]-(centerY),position[0]-(centerX)),(centerX),(centerY)])
+					#	self.bulletMagazine -= 1
 		if self.runReloadfunction == True:
 			self.reload()
 		self.x += self.XMOVE
@@ -204,47 +215,60 @@ class weapon(character):
 
 	paintBallGunCopy_rect = gunImgCopy.get_rect()
 
-	def __init__(self, class_character):
+	def __init__(self, class_character, mx, my):
+		self.scroll0 = class_character.scroll0
+		self.scroll1 = class_character.scroll1
 		self.x = class_character.x
 		self.y = class_character.y
-
-	def draw_paintball_gun(self,mx,my):
 		self.mx = mx
 		self.my = my
+		centerX = self.x + 60
+		centerY = self.y + 60
 
-		centerX = self.x + 70
-		centerY = self.y + 70
-
-		angle = math.atan2(self.my - (centerY), self.mx - (centerX))
+		self.angle = math.atan2(self.my - (centerY - self.scroll1), self.mx - (centerX - self.scroll0))
 
 		left = -1.6741997891848224 
 		leftFlip = pygame.transform.flip(self.gunImgCopy1,False,True)
+		
+		#	WHEN LOOKING LEFT
+		self.paintBallGunRotLeft = pygame.transform.rotate(leftFlip,360-self.angle*57.29)
+		self.paintBallGunPosLeft = ((centerX - self.scroll0) - self.paintBallGunRotLeft.get_rect().width/2-25,(centerY - self.scroll1) - self.paintBallGunRotLeft.get_rect().height/2)
+		self.paintBallGunRot = pygame.transform.rotate(self.gunImgCopy1,360-self.angle*57.29)
+		self.paintBallGunPos = ((centerX - self.scroll0) - self.paintBallGunRot.get_rect().width/2-8,(centerY - self.scroll1) - self.paintBallGunRot.get_rect().height/2)
 
-		#	GUN ROTATE IMG
+	def draw_paintball_gun(self):
 		if self.mx <= self.x + 60:
-			paintBallGunRotLeft = pygame.transform.rotate(leftFlip,360-angle*57.29)
-			paintBallGunPosLeft = ((centerX) - paintBallGunRotLeft.get_rect().width/2,(centerY) - paintBallGunRotLeft.get_rect().height/2)
-			screen.blit(paintBallGunRotLeft,paintBallGunPosLeft)
+			screen.blit(self.paintBallGunRotLeft,(self.paintBallGunPosLeft[0], self.paintBallGunPosLeft[1]))
+		# 	WHEN LOOKING RIGHT
 		else:
-			paintBallGunRot = pygame.transform.rotate(self.gunImgCopy1,360-angle*57.29)
-			paintBallGunPos = ((centerX) - paintBallGunRot.get_rect().width/2,(centerY) - paintBallGunRot.get_rect().height/2)
-			screen.blit(paintBallGunRot,paintBallGunPos)
-	def bullet(self):
+			screen.blit(self.paintBallGunRot,(self.paintBallGunPos[0], self.paintBallGunPos[1]))
 
 		for bullet in bullets:
 			bulletspeed = 25
-			index=0
+			index = 0
 			velx = math.cos(bullet[0])*bulletspeed
 			vely = math.sin(bullet[0])*bulletspeed
 			bullet[1] += velx
-			bullet[2] += vely 
+			bullet[2] += vely
 			if bullet[1]<-64 or bullet[1]>2000 or bullet[2]<-64 or bullet[2]>2000:
 				bullets.pop(index)
-			index += 1
+			index+= 1
 			for projectile in bullets:
 				bullets1 = pygame.transform.rotate(self.paintBallBulletCopy, 360-projectile[0]*57.29)
 				screen.blit(bullets1, (projectile[1],projectile[2]))
 
+	#for bullet in bullets:
+	#	bulletspeed = 25
+	#	index = 0
+	#	vely = math.sin(bullet[0])*bulletspeed
+	#	bullet[1] += velx
+	#	bullet[2] += vely
+	#	if bullet[1]<-64 or bullet[1]>2000 or bullet[2]<-64 or bullet[2]>2000:
+	#		bullets.pop(index)
+	#	index+= 1
+	#	for projectile in bullets:
+	#		bullets1 = pygame.transform.rotate(self.paintBallBulletCopy, 360-projectile[0]*57.29)
+	#		screen.blit(bullets1, (projectile[1],projectile[2]))
 
 		#else:
 			#reloadTime += 1
@@ -252,18 +276,17 @@ class weapon(character):
 			#	reloadTime = 0
 			#	bulletMagazine = 10
 
-		'''									GET X,Y COORDINATES OF ROTATED GUN IMAGE
 		cos = math.cos
 		sin = math.cos
-		a = angle
-		xm = x + 60
-		ym = y + 60
-		xpos = xm + 15
-		ypos = ym - 15
+		a = self.angle
+		xm = self.paintBallGunPos[0]
+		ym = self.paintBallGunPos[1]
+		xpos = xm + 50
+		ypos = ym + 12.5
 		xr = (xpos - xm) * cos(a) - (ypos - ym) * sin(a) + xm
 		yr = (xpos - xm) * sin(a) + (ypos - ym) * cos(a) + ym
-		pygame.draw.line(screen, (red),(xr,yr),(self.mx,self.my))
-		'''
+		pygame.draw.line(screen, (RED),(xr,yr),(self.mx,self.my))
+
 
 		# FIRE BULLET MECHANIC
 def menu():
@@ -292,7 +315,6 @@ def menu():
 		a = pygame.draw.rect(screen, RED, button_1,width=0,)
 		draw.draw_text('PLAY', font, (0,0,0), screen, ((1920-600)/2) + 85,((1080-300)/2) + 12.5)
 		pygame.display.update()
-
 def main():
 
 	global screen, running, time
@@ -302,35 +324,34 @@ def main():
 	leftWalk = False
 	rightWalk = False
 	walkCount = 0
-	XMOVE = 0
-	YMOVE = 0
-
 	scroll = [0,0]
 
-	character1 = character(x,y,leftWalk,rightWalk,walkCount,XMOVE,YMOVE)
+	character1 = character(x,y,leftWalk,rightWalk,walkCount,0,0, scroll)
 	while running:
 		
-		scroll[0] += (character1.x-scroll[0]-WIN_WIDTH/2)/20
-		scroll[1] += (character1.y-scroll[1]-WIN_HEIGHT/2)/20
+		scroll[0] += ((character1.x-scroll[0])-(WIN_WIDTH/2))/20
+		scroll[1] += ((character1.y-scroll[1])-(WIN_HEIGHT/2))/20
+
+		screen.fill(BLUE)
 
 		mx,my = pygame.mouse.get_pos()
-
-		screen.fill(WHITE)
-
-		character1.move()
-		character1.draw(mx,my,scroll)
-		character1.jump()
+		paintball1 = weapon(character1, mx, my)
+		character1.draw(mx,my)
 		character1.draw_bulletMagazine()
 
-		paintball1 = weapon(character1)
-		paintball1.draw_paintball_gun(mx,my)
-		paintball1.bullet()
+		paintball1.draw_paintball_gun()
+		if mx >= character1.x + 60:
+			character1.move(paintball1.paintBallGunPos[0],paintball1.paintBallGunPos[1])
+		if mx <= character1.x + 60:
+			character1.move(paintball1.paintBallGunPosLeft[0],paintball1.paintBallGunPosLeft[1])
+		character1.jump() 
 		'''		TEST YOUR STUFF HERE		'''
 		time += 1
 		draw.draw_text('TIME:          ' + str(time), font, (0,0,0), screen, ((1920-600)/2) + 85,((1080-300)/2) + 12.5)
 		draw.draw_text('RELOADTIME:        ' + str(character1.reloadTime), font, (0,0,0), screen, ((1920-600)/2) + 85,((1080-300)/2) + 50)
 		healthpoints = draw.draw_rectangle(((1920-600)/2) + 85,((1080-300)/2) + 380,200,25,GREEN,True,3)
 		manapoints = draw.draw_rectangle(((1920-600)/2) + 85,((1080-300)/2) + 410,200,25,BLUE,True,3)
+		platform = draw.draw_rectangle(((1920-600)/2) - scroll[0],((1080-300)/2)+150 - scroll[1],200,25,GREEN,True,3)
 		clock.tick(FPS)
 		pygame.display.update()
 
