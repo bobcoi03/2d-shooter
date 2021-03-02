@@ -28,9 +28,6 @@ def load_map(path):
 		for row in data:
 			game_map.append(list(row))
 		return game_map
-
-game_map = load_map('map')
-
 def display_map(game_map, x, y, scroll):
 	tile_rects = []
 	y = 0
@@ -59,7 +56,7 @@ class character:
 
 	runReloadfunction = False
 
-	def __init__(self,x,y,leftWalk,rightWalk,walkCount,XMOVE,YMOVE, scroll):
+	def __init__(self,x,y,leftWalk,rightWalk,walkCount,XMOVE,YMOVE):
 		self.x = x
 		self.y = y
 		self.leftWalk = leftWalk
@@ -72,15 +69,15 @@ class character:
 		self.bulletMagazine = 10
 		self.reloadTime = 0
 		self.runReloadfunction = False
-		self.scroll0 = scroll[0]
-		self.scroll1 = scroll[1]
 	
 	def draw_bulletMagazine(self):
 		draw.draw_text("Ammo:    " + str(self.bulletMagazine),font, GREEN,screen,950,775)
 
-	def draw(self,mx,my):
+	def draw(self,mx,my, scroll):
 		self.mx = mx
 		self.my = my
+		self.scroll0 = scroll[0]
+		self.scroll1 = scroll[1]
 
 		if self.walkCount + 1 >= FPS:
 			self.walkCount = 0
@@ -106,10 +103,11 @@ class character:
 		#	BLIT LEFT OR RIGHT FACING CHARACTER STANDING STILL
 		if not self.leftWalk and not self.rightWalk:
 
-			if self.mx > self.x - self.scroll0:
+			if self.mx > self.x:
 				screen.blit(self.characterImgScale, (self.x - self.scroll0,self.y - self.scroll1))
 			else:
-				screen.blit(pygame.transform.flip(self.characterImgScale,True,False),(self.x - self.scroll0,self.y - self.scroll1))
+				screen.blit(pygame.transform.flip(self.characterImgScale,True,False),(self.x - self.scroll0, self.y - self.scroll1))
+		print(str(self.scroll0) + "    X:               " + str(self.x))
 
 	def jump(self):
 		if self.isJump:
@@ -131,9 +129,11 @@ class character:
 			self.runReloadfunction = False
 		draw.draw_text("Reloading....", font, RED,screen, ((1920-600)/2) + 85,((1080-300)/2) -100)
 
-	def move(self,nozzleX,nozzleY):
+	def move(self,nozzleX,nozzleY, scroll):
 		self.nozzleX = nozzleX
 		self.nozzleY = nozzleY
+		self.scroll0 = scroll[0]
+		self.scroll1 = scroll[1]
 		global running
 
 		LEFT = 1
@@ -207,7 +207,7 @@ class character:
 					position = pygame.mouse.get_pos()
 					if self.bulletMagazine > 0:
 						'''						COORDINATES OF BULLET IN TIME            		       '''
-						bullets.append([math.atan2((position[1])-(centerY - self.scroll1),(position[0])-(centerX - self.scroll1)),(centerX),(centerY)])
+						bullets.append([math.atan2((position[1])-(centerY - self.scroll1),(position[0])-(centerX - self.scroll0)),(centerX - self.scroll0),(centerY - self.scroll1)])
 						self.bulletMagazine -= 1
 					#centerX = self.x + 70
 					#centerY = self.y + 70
@@ -239,9 +239,9 @@ class weapon(character):
 
 	paintBallGunCopy_rect = gunImgCopy.get_rect()
 
-	def __init__(self, class_character, mx, my):
-		self.scroll0 = class_character.scroll0
-		self.scroll1 = class_character.scroll1
+	def __init__(self, class_character, mx, my, scroll):
+		self.scroll0 = scroll[0]
+		self.scroll1 = scroll[1]
 		self.x = class_character.x
 		self.y = class_character.y
 		self.mx = mx
@@ -309,10 +309,7 @@ class weapon(character):
 		ypos = ym + 12.5
 		xr = (xpos - xm) * cos(a) - (ypos - ym) * sin(a) + xm
 		yr = (xpos - xm) * sin(a) + (ypos - ym) * cos(a) + ym
-		pygame.draw.line(screen, (RED),(xr,yr),(self.mx,self.my))
-
-
-		# FIRE BULLET MECHANIC
+		pygame.draw.line(screen, (RED),(xr,yr),(self.mx,self.my))	# FIRE BULLET MECHANIC
 def menu():
 	while True:
 
@@ -343,31 +340,30 @@ def main():
 
 	global screen, running, time
 
-	x = 1920//2
-	y = 1080//2
+	x = WIN_WIDTH/2
+	y = WIN_HEIGHT/2
 	leftWalk = False
 	rightWalk = False
 	walkCount = 0
 	scroll = [0,0]
-
-	character1 = character(x,y,leftWalk,rightWalk,walkCount,0,0, scroll)
+	game_map = load_map('map')
+	character1 = character(x,y,leftWalk,rightWalk,walkCount,0,0)
 	while running:
 		screen.fill(BLUE)
 		
-		scroll[0] += ((character1.x-scroll[0])-(WIN_WIDTH/2))
-		scroll[1] += ((character1.y-scroll[1])-(WIN_HEIGHT/2))
+		scroll[0] += (character1.x-scroll[0]-(WIN_WIDTH/2-50))//20
+		scroll[1] += (character1.y-scroll[1]-(WIN_HEIGHT/2-50))//20
+		scroll[0] = int(scroll[0])
+		scroll[1] = int(scroll[1])
 		display_map(game_map, character1.x, character1.y, scroll)
 
 		mx,my = pygame.mouse.get_pos()
-		paintball1 = weapon(character1, mx, my)
-		character1.draw(mx,my)
+		paintball1 = weapon(character1, mx, my, scroll)
+		character1.move(paintball1.paintBallGunPos[0],paintball1.paintBallGunPos[1], scroll)
+		character1.draw(mx,my, scroll)
 		character1.draw_bulletMagazine()
 
 		paintball1.draw_paintball_gun()
-		if mx >= character1.x + 60:
-			character1.move(paintball1.paintBallGunPos[0],paintball1.paintBallGunPos[1])
-		if mx <= character1.x + 60:
-			character1.move(paintball1.paintBallGunPosLeft[0],paintball1.paintBallGunPosLeft[1])
 		character1.jump() 
 		'''		TEST YOUR STUFF HERE		'''
 		time += 1
@@ -378,6 +374,5 @@ def main():
 		platform = draw.draw_rectangle(((1920-600)/2) - scroll[0],((1080-300)/2)+150 - scroll[1],200,25,GREEN,True,3)
 		clock.tick(FPS)
 		pygame.display.update()
-
 if __name__ == "__main__":
 	main()
