@@ -1,4 +1,4 @@
-import sys, pygame, time, random, math
+import sys,pygame, time, random, math
 from math import sqrt
 from pygame.locals import *
 import draw
@@ -15,11 +15,40 @@ bullets = []
 #	TIME
 time = 0
 FPS = 60
-
 WHITE = 255,255,255
 RED = 255,0,0
 GREEN = 0,128,0
 BLUE = 0,255,255
+
+def collision_test(rect,tiles):
+    hit_list = []
+    for tile in tiles:
+        if rect.colliderect(tile):
+            hit_list.append(tile)
+    return hit_list
+
+def move(rect,movement,tiles):
+    collision_types = {'top':False,'bottom':False,'right':False,'left':False}
+    rect.x += movement[0]
+    hit_list = collision_test(rect,tiles)
+    for tile in hit_list:
+        if movement[0] > 0:
+            rect.right = tile.left
+            collision_types['right'] = True
+        elif movement[0] < 0:
+            rect.left = tile.right
+            collision_types['left'] = True
+    rect.y += movement[1]
+    hit_list = collision_test(rect,tiles)
+    for tile in hit_list:
+        if movement[1] > 0:
+            rect.bottom = tile.top
+            collision_types['bottom'] = True
+        elif movement[1] < 0:
+            rect.top = tile.bottom
+            collision_types['top'] = True
+    return rect, collision_types
+
 def load_map(path):
 	with open(path + '.txt', 'r') as map:
 		data = map.read()
@@ -28,8 +57,9 @@ def load_map(path):
 		for row in data:
 			game_map.append(list(row))
 		return game_map
+
 def display_map(game_map, x, y, scroll):
-	tile_rects = []
+	display_map.tile_rects = []
 	y = 0
 	for layer in game_map:
 		x = 0
@@ -40,9 +70,10 @@ def display_map(game_map, x, y, scroll):
 			if tile == '2':
 				screen.blit(grass_img_scale,(x*WIDTH-scroll[0],y*WIDTH - scroll[1]))
 			if tile != '0':
-				tile_rects.append(pygame.Rect(x*WIDTH,y*WIDTH,WIDTH,WIDTH))
+				display_map.tile_rects.append(pygame.Rect(x*WIDTH,y*WIDTH,WIDTH,WIDTH))
 			x += 1
 		y += 1
+		
 class character:
 	# character image
 	characterImg = pygame.image.load("thief1.png").convert_alpha()
@@ -56,7 +87,7 @@ class character:
 
 	runReloadfunction = False
 
-	def __init__(self,x,y,leftWalk,rightWalk,walkCount,XMOVE,YMOVE):
+	def __init__(self,x,y,leftWalk,rightWalk,walkCount,XMOVE,YMOVE, vertical_momentum, air_timer):
 		self.x = x
 		self.y = y
 		self.leftWalk = leftWalk
@@ -69,6 +100,9 @@ class character:
 		self.bulletMagazine = 10
 		self.reloadTime = 0
 		self.runReloadfunction = False
+		self.vertical_momentum = vertical_momentum
+		self.air_timer = air_timer
+		self.player_rect = pygame.Rect(self.x,self.y,100,100)
 	
 	def draw_bulletMagazine(self):
 		draw.draw_text("Ammo:    " + str(self.bulletMagazine),font, GREEN,screen,950,775)
@@ -85,28 +119,28 @@ class character:
 		frames = 12
 		if self.leftWalk:
 			if self.mx > self.x + 50:
-				screen.blit(self.walkRight[self.walkCount//frames], (self.x - self.scroll0,self.y - self.scroll1))
+				screen.blit(self.walkRight[self.walkCount//frames], (self.player_rect.x - self.scroll0,self.player_rect.y - self.scroll1))
 				self.walkCount += 1
 			else:
 
-				screen.blit(self.walkLeft[self.walkCount//frames], (self.x - self.scroll0,self.y - self.scroll1))
+				screen.blit(self.walkLeft[self.walkCount//frames], (self.player_rect.x - self.scroll0,self.player_rect.y - self.scroll1))
 				self.walkCount += 1
 		#	RIGHTWALK ANIMATION
 		if self.rightWalk:
 			if self.mx < self.x + 50:
-				screen.blit(self.walkLeft[self.walkCount//frames], (self.x - self.scroll0,self.y - self.scroll1))
+				screen.blit(self.walkLeft[self.walkCount//frames], (self.player_rect.x - self.scroll0,self.player_rect.y - self.scroll1))
 				self.walkCount += 1
 				
 			else:
-				screen.blit(self.walkRight[self.walkCount//frames], (self.x - self.scroll0,self.y - self.scroll1))
+				screen.blit(self.walkRight[self.walkCount//frames], (self.player_rect.x - self.scroll0,self.player_rect.y - self.scroll1))
 				self.walkCount += 1
 		#	BLIT LEFT OR RIGHT FACING CHARACTER STANDING STILL
 		if not self.leftWalk and not self.rightWalk:
 
 			if self.mx > self.x:
-				screen.blit(self.characterImgScale, (self.x - self.scroll0,self.y - self.scroll1))
+				screen.blit(self.characterImgScale, (self.player_rect.x - self.scroll0,self.player_rect.y - self.scroll1))
 			else:
-				screen.blit(pygame.transform.flip(self.characterImgScale,True,False),(self.x - self.scroll0, self.y - self.scroll1))
+				screen.blit(pygame.transform.flip(self.characterImgScale,True,False),(self.player_rect.x - self.scroll0, self.player_rect.y - self.scroll1))
 		print(str(self.scroll0) + "    X:               " + str(self.x))
 
 	def jump(self):
@@ -138,7 +172,26 @@ class character:
 
 		LEFT = 1
 		RIGHT = 3
-		velocity = 10
+		VELOCITY = 10
+
+		player_movement = [0,0]
+		if self.rightWalk == True:
+			player_movement[0] += VELOCITY
+		if self.leftWalk == True:
+			player_movement[0] -= VELOCITY
+		player_movement[1] += self.vertical_momentum
+		self.vertical_momentum += 0.1
+		if self.vertical_momentum > 10:
+			self.vertical_momentum = 10
+
+		self.player_rect, collisions = move(self.player_rect, player_movement, display_map.tile_rects)
+		
+		if collisions['bottom'] == True:
+			self.air_timer = 0
+			self.vertical_momentum = 0
+		else:
+			self.air_timer += 1
+
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				pygame.quit()
@@ -149,19 +202,19 @@ class character:
 			if event.type == pygame.KEYDOWN:
 				#	MOVE LEFT
 				if event.key == pygame.K_a:
-					self.XMOVE = 0 - velocity 
-					self.x -= self.XMOVE
 					self.leftWalk = True
 					self.rightWalk = False
 				# MOVE RIGHT
 				elif event.key == pygame.K_d:
-					self.XMOVE = 0 + velocity
-					self.x += self.XMOVE
+					#self.XMOVE = 0 + velocity
+					#self.x += self.XMOVE
 					self.leftWalk = False
 					self.rightWalk = True
 				elif event.key == pygame.K_ESCAPE:
 					menu()
 				elif event.key == pygame.K_SPACE:
+					if self.air_timer < 6:
+						self.vertical_momentum = -5
 					self.isJump = True
 					self.jump()
 					print("space is pressed")
@@ -169,14 +222,11 @@ class character:
 					self.runReloadfunction = True
 			if event.type == pygame.KEYUP:
 				if event.key == pygame.K_a or event.key == pygame.K_d:
-					self.XMOVE = 0
 					self.leftWalk = False
 					self.rightWalk = False
 			if event.type == pygame.KEYDOWN:
 				# MOVE UP
 				if event.key == pygame.K_w and self.isJump == False:
-					self.YMOVE = 0 - velocity
-					self.y -= self.YMOVE
 					if self.mx > self.x:
 						self.rightWalk = True
 						self.leftWalk = False
@@ -185,8 +235,6 @@ class character:
 						self.leftWalk = True
 				# MOVE DOWN
 				elif event.key == pygame.K_s and self.isJump == False:
-					self.YMOVE = 0 + velocity
-					self.y += self.YMOVE
 					if self.mx > self.x:
 						self.rightWalk = True
 						self.leftWalk = False
@@ -196,14 +244,13 @@ class character:
 					
 			if event.type == pygame.KEYUP and self.isJump == False:
 				if event.key == pygame.K_w or event.key == pygame.K_s and self.isJump == False:
-					self.YMOVE = 0
 					self.leftWalk = False
 					self.rightWalk = False
 			#	FIRE BULLET
 			if event.type == pygame.MOUSEBUTTONDOWN:
 				if event.button == LEFT:
-					centerX = self.x + 70
-					centerY = self.y + 70
+					centerX = self.player_rect.x + 70
+					centerY = self.player_rect.y + 70
 					position = pygame.mouse.get_pos()
 					if self.bulletMagazine > 0:
 						'''						COORDINATES OF BULLET IN TIME            		       '''
@@ -242,8 +289,8 @@ class weapon(character):
 	def __init__(self, class_character, mx, my, scroll):
 		self.scroll0 = scroll[0]
 		self.scroll1 = scroll[1]
-		self.x = class_character.x
-		self.y = class_character.y
+		self.x = class_character.player_rect.x
+		self.y = class_character.player_rect.y
 		self.mx = mx
 		self.my = my
 		centerX = self.x + 60
@@ -261,7 +308,7 @@ class weapon(character):
 		self.paintBallGunPos = ((centerX - self.scroll0) - self.paintBallGunRot.get_rect().width/2-8,(centerY - self.scroll1) - self.paintBallGunRot.get_rect().height/2)
 
 	def draw_paintball_gun(self):
-		if self.mx <= self.x + 60:
+		if self.mx <= self.x - self.scroll0:
 			screen.blit(self.paintBallGunRotLeft,(self.paintBallGunPosLeft[0], self.paintBallGunPosLeft[1]))
 		# 	WHEN LOOKING RIGHT
 		else:
@@ -341,21 +388,23 @@ def main():
 	global screen, running, time
 
 	x = WIN_WIDTH/2
-	y = WIN_HEIGHT/2
+	y = WIN_HEIGHT/2 - 50
 	leftWalk = False
 	rightWalk = False
 	walkCount = 0
+	vertical_momentum = 0
+	air_timer = 0
 	scroll = [0,0]
 	game_map = load_map('map')
-	character1 = character(x,y,leftWalk,rightWalk,walkCount,0,0)
+	character1 = character(x,y,leftWalk,rightWalk,walkCount,0,0, vertical_momentum, air_timer)
 	while running:
 		screen.fill(BLUE)
 		
-		scroll[0] += (character1.x-scroll[0]-(WIN_WIDTH/2-50))//20
-		scroll[1] += (character1.y-scroll[1]-(WIN_HEIGHT/2-50))//20
+		scroll[0] += (character1.player_rect.x-scroll[0]-(WIN_WIDTH/2-50))//15
+		scroll[1] += (character1.player_rect.y-scroll[1]-(WIN_HEIGHT/2-50))//15
 		scroll[0] = int(scroll[0])
 		scroll[1] = int(scroll[1])
-		display_map(game_map, character1.x, character1.y, scroll)
+		display_map(game_map, character1.player_rect.x, character1.player_rect.y, scroll)
 
 		mx,my = pygame.mouse.get_pos()
 		paintball1 = weapon(character1, mx, my, scroll)
