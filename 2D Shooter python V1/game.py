@@ -26,7 +26,6 @@ def collision_test(rect,tiles):
         if rect.colliderect(tile):
             hit_list.append(tile)
     return hit_list
-
 def move(rect,movement,tiles):
     collision_types = {'top':False,'bottom':False,'right':False,'left':False}
     rect.x += movement[0]
@@ -48,7 +47,6 @@ def move(rect,movement,tiles):
             rect.top = tile.bottom
             collision_types['top'] = True
     return rect, collision_types
-
 def load_map(path):
 	with open(path + '.txt', 'r') as map:
 		data = map.read()
@@ -57,7 +55,6 @@ def load_map(path):
 		for row in data:
 			game_map.append(list(row))
 		return game_map
-
 def display_map(game_map, x, y, scroll):
 	display_map.tile_rects = []
 	y = 0
@@ -141,7 +138,6 @@ class character:
 				screen.blit(self.characterImgScale, (self.player_rect.x - self.scroll0,self.player_rect.y - self.scroll1))
 			else:
 				screen.blit(pygame.transform.flip(self.characterImgScale,True,False),(self.player_rect.x - self.scroll0, self.player_rect.y - self.scroll1))
-		print(str(self.scroll0) + "    X:               " + str(self.x))
 
 	def jump(self):
 		if self.isJump:
@@ -149,7 +145,7 @@ class character:
 				neg = 1
 				if self.jumpCount < 0:
 					neg = - 1
-				self.y -= self.jumpCount**2 * 0.5 * neg
+				self.player_rect.y -= self.jumpCount**2 * 0.5 * neg
 				self.jumpCount -= 1
 			else:
 				self.isJump = False
@@ -179,15 +175,17 @@ class character:
 			player_movement[0] += VELOCITY
 		if self.leftWalk == True:
 			player_movement[0] -= VELOCITY
+		
 		player_movement[1] += self.vertical_momentum
-		self.vertical_momentum += 0.1
-		if self.vertical_momentum > 10:
-			self.vertical_momentum = 10
+		
+		self.vertical_momentum += 0.3
+		if self.vertical_momentum > VELOCITY + 10:
+			self.vertical_momentum = VELOCITY
 
 		self.player_rect, collisions = move(self.player_rect, player_movement, display_map.tile_rects)
 		
 		if collisions['bottom'] == True:
-			self.air_timer = 0
+			self.air_timer = 10
 			self.vertical_momentum = 0
 		else:
 			self.air_timer += 1
@@ -213,8 +211,6 @@ class character:
 				elif event.key == pygame.K_ESCAPE:
 					menu()
 				elif event.key == pygame.K_SPACE:
-					if self.air_timer < 6:
-						self.vertical_momentum = -5
 					self.isJump = True
 					self.jump()
 					print("space is pressed")
@@ -227,7 +223,7 @@ class character:
 			if event.type == pygame.KEYDOWN:
 				# MOVE UP
 				if event.key == pygame.K_w and self.isJump == False:
-					if self.mx > self.x:
+					if self.mx > self.player_rect.x:
 						self.rightWalk = True
 						self.leftWalk = False
 					else:
@@ -235,7 +231,7 @@ class character:
 						self.leftWalk = True
 				# MOVE DOWN
 				elif event.key == pygame.K_s and self.isJump == False:
-					if self.mx > self.x:
+					if self.mx > self.player_rect.x:
 						self.rightWalk = True
 						self.leftWalk = False
 					else:
@@ -264,8 +260,6 @@ class character:
 					#	self.bulletMagazine -= 1
 		if self.runReloadfunction == True:
 			self.reload()
-		self.x += self.XMOVE
-		self.y += self.YMOVE
 	def __repr__(self):
 		pass
 	def __str__(self):
@@ -423,5 +417,6 @@ def main():
 		platform = draw.draw_rectangle(((1920-600)/2) - scroll[0],((1080-300)/2)+150 - scroll[1],200,25,GREEN,True,3)
 		clock.tick(FPS)
 		pygame.display.update()
+
 if __name__ == "__main__":
 	main()
