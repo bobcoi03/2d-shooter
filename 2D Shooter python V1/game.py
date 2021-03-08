@@ -223,11 +223,11 @@ class character:
 				elif event.key == pygame.K_ESCAPE:
 					menu()
 				#	JUMP
-				elif event.key == pygame.K_SPACE: 
+				elif event.key == pygame.K_SPACE:
 					if self.air_timer < 20:
 						self.vertical_momentum = -16.8
-					
-				
+						self.air_timer = 21
+
 				elif event.key == pygame.K_r:
 					self.runReloadfunction = True
 			
