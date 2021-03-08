@@ -20,33 +20,6 @@ RED = 255,0,0
 GREEN = 0,128,0
 BLUE = 0,255,255
 
-def collision_test(rect,tiles):
-    hit_list = []
-    for tile in tiles:
-        if rect.colliderect(tile):
-            hit_list.append(tile)
-    return hit_list
-def move(rect,movement,tiles):
-    collision_types = {'top':False,'bottom':False,'right':False,'left':False}
-    rect.x += movement[0]
-    hit_list = collision_test(rect,tiles)
-    for tile in hit_list:
-        if movement[0] > 0:
-            rect.right = tile.left
-            collision_types['right'] = True
-        elif movement[0] < 0:
-            rect.left = tile.right
-            collision_types['left'] = True
-    rect.y += movement[1]
-    hit_list = collision_test(rect,tiles)
-    for tile in hit_list:
-        if movement[1] > 0:
-            rect.bottom = tile.top
-            collision_types['bottom'] = True
-        elif movement[1] < 0:
-            rect.top = tile.bottom
-            collision_types['top'] = True
-    return rect, collision_types
 def load_map(path):
 	with open(path + '.txt', 'r') as map:
 		data = map.read()
@@ -70,6 +43,37 @@ def display_map(game_map, x, y, scroll):
 				display_map.tile_rects.append(pygame.Rect(x*WIDTH,y*WIDTH,WIDTH,WIDTH))
 			x += 1
 		y += 1
+
+def collision_test(rect,tiles):
+    hit_list = []
+    for tile in tiles:
+        if rect.colliderect(tile):
+            hit_list.append(tile)
+    return hit_list
+
+def move(rect,movement,tiles):
+    collision_types = {'top':False,'bottom':False,'right':False,'left':False}
+    rect.x += movement[0]
+   
+    hit_list = collision_test(rect,tiles)
+    for tile in hit_list:
+        if movement[0] > 0:
+            rect.right = tile.left
+            collision_types['right'] = True
+        elif movement[0] < 0:
+            rect.left = tile.right
+            collision_types['left'] = True
+    rect.y += movement[1]
+    
+    hit_list = collision_test(rect,tiles)
+    for tile in hit_list:
+        if movement[1] > 0:
+            rect.bottom = tile.top
+            collision_types['bottom'] = True
+        elif movement[1] < 0:
+            rect.top = tile.bottom
+            collision_types['top'] = True
+    return rect, collision_types
 		
 class character:
 	# character image
@@ -143,13 +147,13 @@ class character:
 		if self.isJump:
 			if self.jumpCount >= -10:
 				neg = 1
-				if self.jumpCount < 0:
-					neg = - 1
-				self.player_rect.y -= self.jumpCount**2 * 0.5 * neg
-				self.jumpCount -= 1
-			else:
-				self.isJump = False
-				self.jumpCount = 10
+			if self.jumpCount < 0:
+				neg = - 1
+			self.player_rect.y -= self.jumpCount**2 * 0.5 * neg
+			self.jumpCount -= 1
+		else:
+			self.isJump = False
+			self.jumpCount = 10
 
 	def reload(self):
 		self.reloadTime += 1
@@ -168,28 +172,36 @@ class character:
 
 		LEFT = 1
 		RIGHT = 3
-		VELOCITY = 10
 
+		VELOCITY = 10
+		# speed at which player move 
 		player_movement = [0,0]
 		if self.rightWalk == True:
 			player_movement[0] += VELOCITY
 		if self.leftWalk == True:
 			player_movement[0] -= VELOCITY
 		
+		# GRAVITY
 		player_movement[1] += self.vertical_momentum
+		self.vertical_momentum += 0.9
 		
-		self.vertical_momentum += 0.3
-		if self.vertical_momentum > VELOCITY + 10:
-			self.vertical_momentum = VELOCITY
+		# TERMINAL VELOCITY
+		if self.vertical_momentum > VELOCITY * 1.5:
+			self.vertical_momentum = VELOCITY * 1.5
 
-		self.player_rect, collisions = move(self.player_rect, player_movement, display_map.tile_rects)
-		
-		if collisions['bottom'] == True:
-			self.air_timer = 10
+		self.player_rect, self.collisions = move(self.player_rect, player_movement, display_map.tile_rects)
+
+		# COLLISION DETECTION
+		if self.collisions['bottom'] == True:
+			self.air_timer = 0
 			self.vertical_momentum = 0
 		else:
 			self.air_timer += 1
-
+		# START FALLING IF HIT BOTTOM OF PLATFORM
+		if self.collisions['top'] == True:
+			self.air_timer = 21
+			self.vertical_momentum += 0.9
+		
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				pygame.quit()
@@ -210,33 +222,19 @@ class character:
 					self.rightWalk = True
 				elif event.key == pygame.K_ESCAPE:
 					menu()
-				elif event.key == pygame.K_SPACE:
-					self.isJump = True
-					self.jump()
-					print("space is pressed")
+				#	JUMP
+				elif event.key == pygame.K_SPACE: 
+					if self.air_timer < 20:
+						self.vertical_momentum = -16.8
+					
+				
 				elif event.key == pygame.K_r:
 					self.runReloadfunction = True
+			
 			if event.type == pygame.KEYUP:
 				if event.key == pygame.K_a or event.key == pygame.K_d:
 					self.leftWalk = False
 					self.rightWalk = False
-			if event.type == pygame.KEYDOWN:
-				# MOVE UP
-				if event.key == pygame.K_w and self.isJump == False:
-					if self.mx > self.player_rect.x:
-						self.rightWalk = True
-						self.leftWalk = False
-					else:
-						self.rightWalk = False
-						self.leftWalk = True
-				# MOVE DOWN
-				elif event.key == pygame.K_s and self.isJump == False:
-					if self.mx > self.player_rect.x:
-						self.rightWalk = True
-						self.leftWalk = False
-					else:
-						self.rightWalk = False
-						self.leftWalk = True
 					
 			if event.type == pygame.KEYUP and self.isJump == False:
 				if event.key == pygame.K_w or event.key == pygame.K_s and self.isJump == False:
@@ -258,6 +256,8 @@ class character:
 					#if self.bulletMagazine > 0:
 					#	bullets.append([math.atan2(position[1]-(centerY),position[0]-(centerX)),(centerX),(centerY)])
 					#	self.bulletMagazine -= 1
+
+		print(self.collisions['bottom'])
 		if self.runReloadfunction == True:
 			self.reload()
 	def __repr__(self):
@@ -407,7 +407,7 @@ def main():
 		character1.draw_bulletMagazine()
 
 		paintball1.draw_paintball_gun()
-		character1.jump() 
+		# character1.jump() 
 		'''		TEST YOUR STUFF HERE		'''
 		time += 1
 		draw.draw_text('TIME:          ' + str(time), font, (0,0,0), screen, ((1920-600)/2) + 85,((1080-300)/2) + 12.5)
