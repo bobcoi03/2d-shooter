@@ -51,7 +51,7 @@ def collision_test(rect,tiles):
             hit_list.append(tile)
     return hit_list
 
-def move(rect,movement,tiles):
+def move(rect,movement,tiles,K_s):
     collision_types = {'top':False,'bottom':False,'right':False,'left':False}
     rect.x += movement[0]
    
@@ -67,9 +67,11 @@ def move(rect,movement,tiles):
     
     hit_list = collision_test(rect,tiles)
     for tile in hit_list:
-        if movement[1] > 0:
+        if movement[1] > 0 and K_s == False:
             rect.bottom = tile.top
             collision_types['bottom'] = True
+        elif movement[1] > 0 and K_s == True:
+        	collision_types['bottom'] = False
         elif movement[1] < 0:
             rect.top = tile.bottom
             collision_types['top'] = True
@@ -172,11 +174,10 @@ class character:
 		self.scroll1 = scroll[1]
 		if self.K_s == True:
 			self.timer += 1
-		
-		if self.timer > 60:
+		if self.timer > 20:
 			self.timer = 0
 			self.K_s = False
-		
+	
 		global running
 
 		LEFT = 1
@@ -197,13 +198,13 @@ class character:
 		if self.vertical_momentum > VELOCITY * 1.5:
 			self.vertical_momentum = VELOCITY * 1.5
 		#	COLLISION FUNCTION
-		self.player_rect, self.collisions = move(self.player_rect, player_movement, display_map.tile_rects)
+
+		self.player_rect, self.collisions = move(self.player_rect, player_movement, display_map.tile_rects,self.K_s)
 
 		#	IF PLAYER BOTTOM.Y == PLATFORM.Y
-		if self.K_s == False:
-			if self.collisions['bottom'] == True:
-				self.air_timer = 0
-				self.vertical_momentum = 0
+		if self.collisions['bottom'] == True:
+			self.air_timer = 0
+			self.vertical_momentum = 0
 		else:
 			self.air_timer += 1
 		# START FALLING IF HIT BOTTOM OF PLATFORM
@@ -238,7 +239,6 @@ class character:
 						self.air_timer = 21
 				elif event.key == pygame.K_s:
 					self.K_s = True
-	
 					print('DOWN')				
 
 				elif event.key == pygame.K_r:
