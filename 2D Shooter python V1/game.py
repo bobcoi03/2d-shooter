@@ -96,7 +96,7 @@ class character:
 		self.walkCount = walkCount
 		self.XMOVE = XMOVE
 		self.YMOVE = YMOVE
-		self.isJump = False
+		self.K_s = False
 		self.jumpCount = 10
 		self.bulletMagazine = 10
 		self.reloadTime = 0
@@ -104,6 +104,8 @@ class character:
 		self.vertical_momentum = vertical_momentum
 		self.air_timer = air_timer
 		self.player_rect = pygame.Rect(self.x,self.y,100,100)
+		self.isJump = False
+		self.timer = 0
 	
 	def draw_bulletMagazine(self):
 		draw.draw_text("Ammo:    " + str(self.bulletMagazine),font, GREEN,screen,950,775)
@@ -168,6 +170,13 @@ class character:
 		self.nozzleY = nozzleY
 		self.scroll0 = scroll[0]
 		self.scroll1 = scroll[1]
+		if self.K_s == True:
+			self.timer += 1
+		
+		if self.timer > 60:
+			self.timer = 0
+			self.K_s = False
+		
 		global running
 
 		LEFT = 1
@@ -184,17 +193,17 @@ class character:
 		# GRAVITY
 		player_movement[1] += self.vertical_momentum
 		self.vertical_momentum += 0.9
-		
 		# TERMINAL VELOCITY
 		if self.vertical_momentum > VELOCITY * 1.5:
 			self.vertical_momentum = VELOCITY * 1.5
-
+		#	COLLISION FUNCTION
 		self.player_rect, self.collisions = move(self.player_rect, player_movement, display_map.tile_rects)
 
-		# COLLISION DETECTION
-		if self.collisions['bottom'] == True:
-			self.air_timer = 0
-			self.vertical_momentum = 0
+		#	IF PLAYER BOTTOM.Y == PLATFORM.Y
+		if self.K_s == False:
+			if self.collisions['bottom'] == True:
+				self.air_timer = 0
+				self.vertical_momentum = 0
 		else:
 			self.air_timer += 1
 		# START FALLING IF HIT BOTTOM OF PLATFORM
@@ -227,6 +236,10 @@ class character:
 					if self.air_timer < 20:
 						self.vertical_momentum = -16.8
 						self.air_timer = 21
+				elif event.key == pygame.K_s:
+					self.K_s = True
+	
+					print('DOWN')				
 
 				elif event.key == pygame.K_r:
 					self.runReloadfunction = True
@@ -236,13 +249,13 @@ class character:
 					self.leftWalk = False
 					self.rightWalk = False
 					
-			if event.type == pygame.KEYUP and self.isJump == False:
-				if event.key == pygame.K_w or event.key == pygame.K_s and self.isJump == False:
+			if event.type == pygame.KEYUP:
+				if event.key == pygame.K_w or event.key == pygame.K_s:
 					self.leftWalk = False
 					self.rightWalk = False
 			#	FIRE BULLET
 			if event.type == pygame.MOUSEBUTTONDOWN:
-				if event.button == LEFT:
+				if event.button == LEFT and not self.runReloadfunction == True:
 					centerX = self.player_rect.x + 70
 					centerY = self.player_rect.y + 70
 					position = pygame.mouse.get_pos()
@@ -256,8 +269,7 @@ class character:
 					#if self.bulletMagazine > 0:
 					#	bullets.append([math.atan2(position[1]-(centerY),position[0]-(centerX)),(centerX),(centerY)])
 					#	self.bulletMagazine -= 1
-
-		print(self.collisions['bottom'])
+		print(self.K_s)
 		if self.runReloadfunction == True:
 			self.reload()
 	def __repr__(self):
@@ -381,8 +393,8 @@ def main():
 
 	global screen, running, time
 
-	x = WIN_WIDTH/2
-	y = WIN_HEIGHT/2 - 50
+	x = (1920-600)/2 + 85
+	y = (1920-600)/2 + -300
 	leftWalk = False
 	rightWalk = False
 	walkCount = 0
@@ -394,8 +406,8 @@ def main():
 	while running:
 		screen.fill(BLUE)
 		
-		scroll[0] += (character1.player_rect.x-scroll[0]-(WIN_WIDTH/2-50))//15
-		scroll[1] += (character1.player_rect.y-scroll[1]-(WIN_HEIGHT/2-50))//15
+		scroll[0] += (character1.player_rect.x-scroll[0]-x)//15
+		scroll[1] += (character1.player_rect.y-scroll[1]-y)//15
 		scroll[0] = int(scroll[0])
 		scroll[1] = int(scroll[1])
 		display_map(game_map, character1.player_rect.x, character1.player_rect.y, scroll)
