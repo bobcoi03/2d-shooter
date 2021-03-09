@@ -2,7 +2,7 @@ import sys,pygame, time, random, math
 from math import sqrt
 from pygame.locals import *
 import draw
-from map1 import grass_img_scale, dirt_img_scale
+from images import *
 pygame.init()
 
 clock = pygame.time.Clock()
@@ -15,10 +15,24 @@ bullets = []
 #	TIME
 time = 0
 FPS = 60
+BLACK = 0,0,0
 WHITE = 255,255,255
 RED = 255,0,0
 GREEN = 0,128,0
 BLUE = 0,255,255
+img = pygame.image.load('nightSky.jpg').convert_alpha(screen)
+def background_img(image):
+	screen.blit(image,(0,0))
+
+background_objects = [[0.25,[1000,50,200,800]],[0.25,[280,30,40,400]],[0.5,[30,40,40,400]],[0.5,[130,90,100,400]],[0.5,[300,80,120,400]]]
+def background_blocks(scroll):
+	pygame.draw.rect(screen,(7,80,75),pygame.Rect(0,120,300,80))
+	for background_object in background_objects:
+		obj_rect = pygame.Rect(background_object[1][0]-scroll[0]*background_object[0],background_object[1][1]-scroll[1]*background_object[0],background_object[1][2],background_object[1][3])
+		#if background_object[0] == 0.5:
+		#	pygame.draw.rect(screen,(14,222,150),obj_rect)
+		#else:
+		pygame.draw.rect(screen,(9,91,85),obj_rect)
 
 def load_map(path):
 	with open(path + '.txt', 'r') as map:
@@ -76,7 +90,7 @@ def move(rect,movement,tiles,K_s):
             rect.top = tile.bottom
             collision_types['top'] = True
     return rect, collision_types
-		
+	
 class character:
 	# character image
 	characterImg = pygame.image.load("thief1.png").convert_alpha()
@@ -277,16 +291,13 @@ class character:
 	def __str__(self):
 		pass
 class weapon(character):
-	# image of pistol gun
-	gunImg = pygame.image.load("pistol.png")
+
 	gunImgScale = pygame.transform.scale(gunImg, (50,25))
 	gunImgCopy = gunImgScale.copy()
-	# image of paintball gun
-	gunImg1 = pygame.image.load("gun.png")
+
 	gunImgScale1 = pygame.transform.scale(gunImg1, (50,25))
 	gunImgCopy1 = gunImgScale1.copy()
-	# paintball bullet image
-	paintBallBullet = pygame.image.load("circle.png")
+
 	paintBallBulletScale = pygame.transform.scale(paintBallBullet,(8,8))
 	paintBallBulletCopy = paintBallBulletScale.copy()
 
@@ -404,12 +415,13 @@ def main():
 	game_map = load_map('map')
 	character1 = character(x,y,leftWalk,rightWalk,walkCount,0,0, vertical_momentum, air_timer)
 	while running:
-		screen.fill(BLUE)
+		screen.fill(BLACK)
 		
 		scroll[0] += (character1.player_rect.x-scroll[0]-x)//15
 		scroll[1] += (character1.player_rect.y-scroll[1]-y)//15
 		scroll[0] = int(scroll[0])
 		scroll[1] = int(scroll[1])
+		background_blocks(scroll)
 		display_map(game_map, character1.player_rect.x, character1.player_rect.y, scroll)
 
 		mx,my = pygame.mouse.get_pos()
@@ -422,8 +434,8 @@ def main():
 		# character1.jump() 
 		'''		TEST YOUR STUFF HERE		'''
 		time += 1
-		draw.draw_text('TIME:          ' + str(time), font, (0,0,0), screen, ((1920-600)/2) + 85,((1080-300)/2) + 12.5)
-		draw.draw_text('RELOADTIME:        ' + str(character1.reloadTime), font, (0,0,0), screen, ((1920-600)/2) + 85,((1080-300)/2) + 50)
+		draw.draw_text('TIME:          ' + str(time), font, (WHITE), screen, ((1920-600)/2) + 85,((1080-300)/2) - 100)
+		draw.draw_text('RELOADTIME:        ' + str(character1.reloadTime), font, (WHITE), screen, ((1920-600)/2) + 85,((1080-300)/2) - 50)
 		healthpoints = draw.draw_rectangle(((1920-600)/2) + 85,((1080-300)/2) + 380,200,25,GREEN,True,3)
 		manapoints = draw.draw_rectangle(((1920-600)/2) + 85,((1080-300)/2) + 410,200,25,BLUE,True,3)
 		platform = draw.draw_rectangle(((1920-600)/2) - scroll[0],((1080-300)/2)+150 - scroll[1],200,25,GREEN,True,3)
