@@ -21,10 +21,10 @@ RED = 255,0,0
 GREEN = 0,128,0
 BLUE = 0,255,255
 img = pygame.image.load('nightSky.jpg').convert_alpha(screen)
+background_objects = [[0.25,[1000,50,200,800]],[0.25,[280,30,40,400]],[0.5,[30,40,40,400]],[0.5,[130,90,100,400]],[0.5,[300,80,120,400]]]
 def background_img(image):
 	screen.blit(image,(0,0))
 
-background_objects = [[0.25,[1000,50,200,800]],[0.25,[280,30,40,400]],[0.5,[30,40,40,400]],[0.5,[130,90,100,400]],[0.5,[300,80,120,400]]]
 def background_blocks(scroll):
 	pygame.draw.rect(screen,(7,80,75),pygame.Rect(0,120,300,80))
 	for background_object in background_objects:
@@ -42,6 +42,7 @@ def load_map(path):
 		for row in data:
 			game_map.append(list(row))
 		return game_map
+
 def display_map(game_map, x, y, scroll):
 	display_map.tile_rects = []
 	y = 0
@@ -253,7 +254,6 @@ class character:
 						self.air_timer = 21
 				elif event.key == pygame.K_s:
 					self.K_s = True
-					print('DOWN')				
 
 				elif event.key == pygame.K_r:
 					self.runReloadfunction = True
@@ -283,13 +283,17 @@ class character:
 					#if self.bulletMagazine > 0:
 					#	bullets.append([math.atan2(position[1]-(centerY),position[0]-(centerX)),(centerX),(centerY)])
 					#	self.bulletMagazine -= 1
-		print(self.K_s)
 		if self.runReloadfunction == True:
 			self.reload()
 	def __repr__(self):
 		pass
 	def __str__(self):
 		pass
+
+class enemy:
+	def __init__(self):
+		pass
+
 class weapon(character):
 
 	gunImgScale = pygame.transform.scale(gunImg, (50,25))
@@ -374,32 +378,108 @@ class weapon(character):
 		xr = (xpos - xm) * cos(a) - (ypos - ym) * sin(a) + xm
 		yr = (xpos - xm) * sin(a) + (ypos - ym) * cos(a) + ym
 		pygame.draw.line(screen, (RED),(xr,yr),(self.mx,self.my))	# FIRE BULLET MECHANIC
+
+def settings_keyboard():
+	print("settings")
+	while True:
+
+		mx,my = pygame.mouse.get_pos()
+		print(mx,my)
+		clock.tick(FPS)
+		screen.fill(BLACK)
+
+		LEFTCLICK = 1
+		click = False
+
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				pygame.quit()
+				sys.exit()
+				break
+			elif event.type == pygame.RESIZABLE:
+				screen
+			elif event.type == pygame.MOUSEBUTTONDOWN:
+				if event.button == LEFTCLICK:
+					click = True
+			if event.type == pygame.KEYDOWN:
+				if event.key == pygame.K_ESCAPE:
+					settings()
+
+		screen.blit(keyboard_img_scale.convert_alpha(), (118,80))
+		pygame.display.update()
+
+def settings():
+	print("settings")
+	while True:
+
+		mx,my = pygame.mouse.get_pos()
+		print(mx,my)
+		clock.tick(FPS)
+		screen.fill(BLACK)
+
+		LEFTCLICK = 1
+		click = False
+		keyboardconfig_button = pygame.Rect(((1920-600)/2),((1080-300)/2) + 85,200,50)
+
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				pygame.quit()
+				sys.exit()
+				break
+			if event.type == pygame.RESIZABLE:
+				screen
+			if event.type == pygame.MOUSEBUTTONDOWN:
+				if event.button == LEFTCLICK:
+					click = True
+			if event.type == pygame.KEYDOWN:
+				if event.key == pygame.K_ESCAPE:
+					menu()
+
+		if keyboardconfig_button.collidepoint((mx, my)):
+			if click:
+				settings_keyboard()
+		keyboard_box = pygame.draw.rect(screen, RED, keyboardconfig_button, width=0)
+		keyboard_text = draw.draw_text('Keyboard settings', font, WHITE, screen, ((1920-600)/2) + 85,((1080-300)/2) + 12.5 + 85)
+		pygame.display.update()
+
 def menu():
 	while True:
 
 		mx,my = pygame.mouse.get_pos()
 		clock.tick(FPS)
 
-		screen.fill(WHITE)
+		screen.fill(BLACK)
 
 		LEFTCLICK = 1
 		click = False
-		button_1 = pygame.Rect((1920-600)/2,(1080-300)/2,200,50)
+		play_button = pygame.Rect((1920-600)/2,(1080-300)/2,200,50)
+		settings_button = pygame.Rect((1920-600)/2,(1080-300)/2 + 85,200,50)
 
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				pygame.quit()
 				sys.exit()
+				break
+			if event.type == pygame.RESIZABLE:
+				screen
 			if event.type == pygame.MOUSEBUTTONDOWN:
 				if event.button == LEFTCLICK:
 					click = True
-
-		if button_1.collidepoint((mx, my)):
+		if play_button.collidepoint((mx, my)):
 			if click:
 				main()
-		a = pygame.draw.rect(screen, RED, button_1,width=0,)
-		draw.draw_text('PLAY', font, (0,0,0), screen, ((1920-600)/2) + 85,((1080-300)/2) + 12.5)
+		
+		if settings_button.collidepoint((mx,my)):
+			if click:
+				settings()
+
+		play_button_box  = pygame.draw.rect(screen, RED, play_button,width=0,)
+		playButton = draw.draw_text('PLAY', font, WHITE, screen, ((1920-600)/2) + 85,((1080-300)/2) + 12.5)
+		
+		settings_button_box = pygame.draw.rect(screen, RED, settings_button,width=0)
+		settingsButton = draw.draw_text('SETTINGS', font, WHITE, screen, ((1920-600)/2) + 85,((1080-300)/2) + 12.5 + 85)
 		pygame.display.update()
+
 def main():
 
 	global screen, running, time
@@ -421,6 +501,7 @@ def main():
 		scroll[1] += (character1.player_rect.y-scroll[1]-y)//15
 		scroll[0] = int(scroll[0])
 		scroll[1] = int(scroll[1])
+		background_img(img)
 		background_blocks(scroll)
 		display_map(game_map, character1.player_rect.x, character1.player_rect.y, scroll)
 
@@ -439,7 +520,8 @@ def main():
 		healthpoints = draw.draw_rectangle(((1920-600)/2) + 85,((1080-300)/2) + 380,200,25,GREEN,True,3)
 		manapoints = draw.draw_rectangle(((1920-600)/2) + 85,((1080-300)/2) + 410,200,25,BLUE,True,3)
 		platform = draw.draw_rectangle(((1920-600)/2) - scroll[0],((1080-300)/2)+150 - scroll[1],200,25,GREEN,True,3)
-		clock.tick(FPS)
+		FPSCLOCK=clock.tick(FPS)
+		FPSprint = draw.draw_text("FPS:   " + str(FPSCLOCK), font, (WHITE), screen, 80,80)
 		pygame.display.update()
 
 if __name__ == "__main__":
